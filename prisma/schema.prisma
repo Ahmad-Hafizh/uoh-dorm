@@ -55,7 +55,7 @@ model DocumentRequest {
   user_name           String
   request_type        String
   notes               String?
-  attachment_file_ids JsonB?
+  attachment_file_ids Json?
   status              String
   admin_note          String?
   created_at          String
@@ -109,7 +109,7 @@ model Form {
   id             String         @id
   title          String
   description    String?
-  questions      JsonB
+  questions      Json
   is_active      Boolean?
   created_by     String
   author_name    String
@@ -123,7 +123,7 @@ model FormResponse {
   form_id      String
   user_id      String
   user_name    String
-  answers      JsonB
+  answers      Json
   submitted_at String
   updated_at   String?
   form         Form    @relation(fields: [form_id], references: [id])
