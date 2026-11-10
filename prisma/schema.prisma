@@ -1,0 +1,132 @@
+// use prisma-8
+// Prisma 8 contract for the future Neon integration. Demo APIs still use JSON.
+
+model User {
+  id                         String           @id
+  email                      String           @unique(map: "ix_users_email")
+  password_hash              String
+  name                       String
+  role                       String
+  announcements_last_read_at String?
+  permissions_last_read_at   String?
+  created_at                 String
+  @@map("users")
+}
+
+model StudentProfile {
+  id               String  @id
+  user_id          String  @unique(map: "ix_student_profiles_user_id")
+  full_name        String
+  nationality      String
+  passport_number  String
+  passport_expiry  String
+  iqomah_number    String
+  iqomah_expiry    String
+  phone            String
+  building         String
+  room_number      String
+  program          String
+  academic_year    String
+  photo_url        String?
+  passport_file_id String?
+  iqomah_file_id   String?
+  created_at       String
+  user             User    @relation(fields: [user_id], references: [id])
+  @@map("student_profiles")
+}
+
+model Complaint {
+  id             String  @id
+  user_id        String
+  user_name      String
+  category       String
+  title          String
+  description    String
+  status         String
+  admin_response String?
+  created_at     String
+  updated_at     String?
+  @@map("complaints")
+}
+
+model DocumentRequest {
+  id                  String  @id
+  user_id             String
+  user_name           String
+  request_type        String
+  notes               String?
+  attachment_file_ids JsonB?
+  status              String
+  admin_note          String?
+  created_at          String
+  updated_at          String?
+  @@map("document_requests")
+}
+
+model FileRecord {
+  id                String   @id
+  storage_path      String
+  original_filename String
+  content_type      String
+  size              Int
+  kind              String
+  uploaded_by       String
+  is_deleted        Boolean?
+  created_at        String
+  @@map("files")
+}
+
+model Announcement {
+  id          String   @id
+  title_en    String
+  title_ar    String
+  body_en     String
+  body_ar     String
+  pinned      Boolean?
+  author_name String
+  form_id     String?
+  created_at  String
+  @@map("announcements")
+}
+
+model Permission {
+  id              String  @id
+  user_id         String
+  user_name       String
+  permission_type String
+  destination     String
+  start_date      String
+  end_date        String
+  reason          String
+  status          String
+  admin_note      String?
+  created_at      String
+  updated_at      String?
+  @@map("permissions")
+}
+
+model Form {
+  id             String         @id
+  title          String
+  description    String?
+  questions      JsonB
+  is_active      Boolean?
+  created_by     String
+  author_name    String
+  response_count Int?
+  created_at     String
+  @@map("forms")
+}
+
+model FormResponse {
+  id           String  @id
+  form_id      String
+  user_id      String
+  user_name    String
+  answers      JsonB
+  submitted_at String
+  updated_at   String?
+  form         Form    @relation(fields: [form_id], references: [id])
+  user         User    @relation(fields: [user_id], references: [id])
+  @@map("form_responses")
+}

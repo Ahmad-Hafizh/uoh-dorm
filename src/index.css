@@ -1,0 +1,85 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 224 76% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 100% 93%;
+    --secondary-foreground: 224 76% 33%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 100% 93%;
+    --accent-foreground: 224 76% 33%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 224 76% 48%;
+    --chart-1: 224 76% 48%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 262 47% 63%;
+    --chart-4: 24 95% 53%;
+    --chart-5: 152 76% 40%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Outfit", "IBM Plex Sans", system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  body.font-arabic {
+    font-family: "Cairo", "Tajawal", system-ui, sans-serif;
+  }
+  body.font-arabic h1, body.font-arabic h2, body.font-arabic h3, body.font-arabic h4 {
+    font-family: "Cairo", "Tajawal", sans-serif;
+    font-weight: 700;
+  }
+  h1, h2, h3, h4 {
+    font-family: "Outfit", sans-serif;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Number tabular alignment */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Subtle grid overlay for hero */
+.bg-grid {
+  background-image: linear-gradient(hsl(224 76% 48% / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(224 76% 48% / 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* RTL icon flip for directional icons only (use class="rtl-flip") */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: hsl(214 32% 85%); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(214 32% 70%); }
+
+@layer base {
+  [data-debug-wrapper="true"] { display: contents !important; }
+  [data-debug-wrapper="true"] > * {
+    margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+    padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+    column-gap: inherit; row-gap: inherit; gap: inherit;
+    border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+    border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+    border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+  }
+}

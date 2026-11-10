@@ -1,0 +1,140 @@
+{
+  "users": [
+    {
+      "id": "admin",
+      "name": "Demo Admin",
+      "email": "admin@uoh.edu.sa",
+      "role": "admin",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "1970-01-01",
+      "permissions_last_read_at": "1970-01-01"
+    },
+    {
+      "id": "staff",
+      "name": "Demo Staff",
+      "email": "staff@uoh.edu.sa",
+      "role": "staff",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "1970-01-01",
+      "permissions_last_read_at": "1970-01-01"
+    },
+    {
+      "id": "student",
+      "name": "Demo Student",
+      "email": "student@uoh.edu.sa",
+      "role": "student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "1970-01-01",
+      "permissions_last_read_at": "1970-01-01"
+    }
+  ],
+  "students": [
+    {
+      "id": "profile",
+      "user_id": "student",
+      "full_name": "Demo Student",
+      "nationality": "Indonesia",
+      "building": "A",
+      "room_number": "101",
+      "program": "Computer Science",
+      "academic_year": "2026/2027",
+      "phone": "0500000000",
+      "passport_number": "DEMO-PASSPORT",
+      "passport_expiry": "2027-11-10",
+      "iqomah_number": "DEMO-IQOMAH",
+      "iqomah_expiry": "2026-11-30",
+      "passport_file_id": null,
+      "iqomah_file_id": null,
+      "created_at": "2026-11-10T11:47:29.259Z"
+    }
+  ],
+  "complaints": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": null,
+      "status": "pending",
+      "id": "complaint-demo",
+      "category": "facility",
+      "title": "Desk lamp needs repair",
+      "description": "The desk lamp in room A-101 is not working.",
+      "admin_response": ""
+    }
+  ],
+  "documents": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": null,
+      "status": "pending",
+      "id": "document-demo",
+      "request_type": "iqomah_renewal",
+      "notes": "Example renewal request",
+      "attachment_file_ids": [],
+      "admin_note": ""
+    }
+  ],
+  "permissions": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": null,
+      "status": "pending",
+      "id": "permission-demo",
+      "permission_type": "outing",
+      "destination": "Hail city centre",
+      "start_date": "2026-11-11",
+      "end_date": "2026-11-11",
+      "reason": "Purchase study supplies",
+      "admin_note": ""
+    }
+  ],
+  "announcements": [
+    {
+      "id": "announcement-demo",
+      "title_en": "Welcome to the dormitory demo",
+      "title_ar": "مرحبًا بكم في النسخة التجريبية للسكن",
+      "body_en": "All records are fictional. Try the admin, staff and student accounts.",
+      "body_ar": "جميع البيانات تجريبية. يمكنك تجربة حسابات المسؤول والموظف والطالب.",
+      "pinned": true,
+      "author_name": "Demo Admin",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    }
+  ],
+  "forms": [
+    {
+      "id": "form-demo",
+      "title": "Dormitory feedback",
+      "description": "Tell us how we can improve your stay.",
+      "is_active": true,
+      "questions": [
+        {
+          "id": "q1",
+          "label": "How is your room?",
+          "type": "single_choice",
+          "options": [
+            "Comfortable",
+            "Needs attention"
+          ],
+          "required": true
+        },
+        {
+          "id": "q2",
+          "label": "Additional feedback",
+          "type": "textarea",
+          "required": false,
+          "options": null
+        }
+      ],
+      "created_by": "admin",
+      "author_name": "Demo Admin",
+      "response_count": 0,
+      "created_at": "2026-11-10T11:47:29.259Z"
+    }
+  ],
+  "responses": [],
+  "files": []
+}
