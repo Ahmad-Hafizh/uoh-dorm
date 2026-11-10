@@ -19,7 +19,7 @@ npm run build
 npm start
 ```
 
-Development uses `.next-dev`; production uses `.next-build`, so a production build does not overwrite a running development server's chunks. If a previously running server still serves stale chunks, stop that process and restart `npm run dev`, then reload the browser.
+Development uses `.next-dev`; production uses `.next`, so a production build does not overwrite a running development server's chunks. If a previously running server still serves stale chunks, stop that process and restart `npm run dev`, then reload the browser.
 
 ## Converted features
 

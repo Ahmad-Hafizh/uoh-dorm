@@ -37,7 +37,8 @@
     "tailwind.config.ts",
     ".next-dev/types/**/*.ts",
     ".next-build/types/**/*.ts",
-    "prisma.config.ts"
+    "prisma.config.ts",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
