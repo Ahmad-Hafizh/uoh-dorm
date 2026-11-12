@@ -1,5 +1,5 @@
-import type { Store, User, Complaint, DocumentRequest, Permission } from './models.ts';
-import { complaintCreate, complaintUpdate, documentCreate, documentUpdate, permissionCreate, permissionUpdate, announcementCreate } from './models.ts';
+import type { Store, User, DocumentRequest, Permission } from './models.ts';
+import { documentCreate, documentUpdate, permissionCreate, permissionUpdate, announcementCreate } from './models.ts';
 import { roles, find, fail, base, sorted, own, attachments, now } from './helpers.ts';
 import { announcements } from './dashboard.ts';
 export function requests(db: Store, user: User, resource: string, id: string | undefined, method: string, input: unknown): unknown {
@@ -19,18 +19,13 @@ export function requests(db: Store, user: User, resource: string, id: string | u
         }
         fail(405, 'Method not allowed');
     }
-    if (resource !== 'complaints' && resource !== 'documents' && resource !== 'permissions')
+    if (resource !== 'documents' && resource !== 'permissions')
         fail(404, 'Not found');
     if (!id && method === 'GET')
-        return sorted(own<Complaint | DocumentRequest | Permission>(db[resource], user));
+        return sorted(own<DocumentRequest | Permission>(db[resource], user));
     const common = { ...base(), user_id: user.id, user_name: user.name, updated_at: null, status: 'pending' as const };
     if (!id && method === 'POST') {
         roles(user, 'student');
-        if (resource === 'complaints') {
-            const row: Complaint = { ...common, ...complaintCreate.parse(input), admin_response: '' };
-            db.complaints.push(row);
-            return row;
-        }
         if (resource === 'documents') {
             const data = documentCreate.parse(input);
             attachments(db, data.attachment_file_ids, user.id);
@@ -47,11 +42,6 @@ export function requests(db: Store, user: User, resource: string, id: string | u
     }
     if (id && method === 'PATCH') {
         roles(user, 'admin', 'staff');
-        if (resource === 'complaints') {
-            const row = find(db.complaints, id);
-            Object.assign(row, complaintUpdate.parse(input), { updated_at: now() });
-            return row;
-        }
         if (resource === 'documents') {
             const row = find(db.documents, id);
             Object.assign(row, documentUpdate.parse(input), { updated_at: now() });

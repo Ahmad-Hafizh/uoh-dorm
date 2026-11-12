@@ -18,3 +18,9 @@ demo/uploads/
 .next-dev/
 .next-build/
 .next-final/
+
+# AI Agents & IDE Cache
+.agents/
+.claude/
+.cursor/
+.devin/

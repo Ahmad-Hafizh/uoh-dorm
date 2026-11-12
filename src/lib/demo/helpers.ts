@@ -33,17 +33,26 @@ export function recount(db: Store) { for (const form of db.forms)
 export function days(date: string) { return Math.floor((Date.parse(date + 'T00:00:00Z') - Date.parse(now().slice(0, 10) + 'T00:00:00Z')) / 86400000); }
 export function csv(value: unknown) { let text = Array.isArray(value) ? value.join(', ') : String(value ?? ''); if (/^\s*[=+@-]/.test(text))
     text = "'" + text; return '"' + text.replaceAll('"', '""') + '"'; }
+export function isFormClosed(form: { closes_at?: string | null; is_active?: boolean }): boolean {
+    if (!form.is_active) return true;
+    if (form.closes_at) {
+        const deadline = new Date(form.closes_at).getTime();
+        if (!Number.isNaN(deadline) && deadline < Date.now())
+            return true;
+    }
+    return false;
+}
 export function validateQuestions(questions: Question[]) { const ids = new Set<string>(); for (const question of questions) {
     if (ids.has(question.id))
         fail(422, 'Question IDs must be unique');
     ids.add(question.id);
-    if (['single_choice', 'multi_choice'].includes(question.type) && !question.options?.length)
+    if (['single_choice', 'multi_choice', 'dropdown'].includes(question.type) && !question.options?.length)
         fail(422, 'Choice questions need options');
 } }
 export function validateAnswers(questions: Question[], answers: Answers) { for (const question of questions) {
     const answer = answers[question.id], empty = answer == null || answer === '' || Array.isArray(answer) && !answer.length;
     if (empty) {
-        if (question.required)
+        if (question.is_required || question.required)
             fail(422, `Required: ${question.label}`);
         continue;
     }
@@ -54,7 +63,7 @@ export function validateAnswers(questions: Question[], answers: Answers) { for (
     else {
         if (Array.isArray(answer))
             fail(422, 'Invalid answer');
-        if (question.type === 'single_choice' && !question.options?.includes(String(answer)))
+        if (['single_choice', 'dropdown'].includes(question.type) && !question.options?.includes(String(answer)))
             fail(422, 'Invalid choice');
         if (question.type === 'number' && !Number.isFinite(Number(answer)))
             fail(422, 'Invalid number');

@@ -9,11 +9,16 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
             if (method === 'GET')
                 return profile;
             if (method === 'PATCH') {
-                const data = fileFields.parse(input);
+                const data = studentUpdate.parse(input);
                 if (!Object.keys(data).length)
                     fail(400, 'No fields to update');
-                attachments(db, Object.values(data), user.id);
+                assignProfileFiles(db, [data.passport_file_id, data.iqomah_file_id], user.id, profile.user_id);
                 Object.assign(profile, data);
+                const account = db.users.find(row => row.id === profile.user_id);
+                if (account) {
+                    const name = data.arabicName || data.englishName || data.full_name;
+                    if (name) account.name = name;
+                }
                 return profile;
             }
             fail(405, 'Method not allowed');
@@ -25,9 +30,26 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
             const { email, password: _password, ...profile } = studentCreate.parse(input);
             if (db.users.some(row => row.email === email.toLowerCase()))
                 fail(400, 'Email already registered');
-            const account: User = { ...base(), email: email.toLowerCase(), name: profile.full_name, role: 'student' };
+            const studentName = profile.arabicName || profile.englishName || profile.full_name || 'Student';
+            const account: User = { ...base(), email: email.toLowerCase(), name: studentName, role: 'student' };
             assignProfileFiles(db, [profile.passport_file_id, profile.iqomah_file_id], user.id, account.id);
-            const student: Student = { ...base(), ...profile, user_id: account.id, passport_file_id: profile.passport_file_id ?? null, iqomah_file_id: profile.iqomah_file_id ?? null, photo_url: null };
+            const student: Student = {
+                ...base(),
+                ...profile,
+                full_name: profile.full_name || profile.englishName || profile.arabicName || '',
+                building: profile.building || '',
+                room_number: profile.room_number || '',
+                program: profile.program || profile.programStudy || '',
+                programStudy: profile.programStudy || profile.program || '',
+                academic_year: profile.academic_year || profile.academicYear || '2026/2027',
+                academicYear: profile.academicYear || profile.academic_year || '2026/2027',
+                residenceStatus: profile.residenceStatus || 'INSIDE_SAKAN',
+                academicStatus: profile.academicStatus || 'ACTIVE',
+                user_id: account.id,
+                passport_file_id: profile.passport_file_id ?? null,
+                iqomah_file_id: profile.iqomah_file_id ?? null,
+                photo_url: null
+            };
             db.users.push(account);
             db.students.push(student);
             return student;
@@ -40,8 +62,10 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
             assignProfileFiles(db, [data.passport_file_id, data.iqomah_file_id], user.id, profile.user_id);
             Object.assign(profile, data);
             const account = db.users.find(row => row.id === profile.user_id);
-            if (account && data.full_name)
-                account.name = data.full_name;
+            if (account) {
+                const name = data.arabicName || data.englishName || data.full_name;
+                if (name) account.name = name;
+            }
             return profile;
         }
         if (method === 'DELETE') {
@@ -54,31 +78,41 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
         }
         fail(405, 'Method not allowed');
     }
-    roles(user, 'admin');
-    if (!id && method === 'GET')
-        return db.users.filter(row => row.role !== 'student');
-    if (!id && method === 'POST') {
-        const { password: _password, ...data } = staffCreate.parse(input);
-        data.email = data.email.toLowerCase();
-        if (db.users.some(row => row.email === data.email))
-            fail(400, 'Email already registered');
-        const account: User = { ...base(), ...data };
-        db.users.push(account);
-        return account;
+    if (resource === 'staff') {
+        if (!id && method === 'GET') {
+            roles(user, 'admin', 'staff');
+            return db.users.filter(row => row.role !== 'student');
+        }
+        if (id === user.id && method === 'PATCH') {
+            const account = find(db.users.filter(row => row.role !== 'student'), id, 'Staff');
+            const { password: _password, role: _role, ...data } = staffUpdate.parse(input);
+            Object.assign(account, data);
+            return account;
+        }
+        roles(user, 'admin');
+        if (!id && method === 'POST') {
+            const { password: _password, ...data } = staffCreate.parse(input);
+            data.email = data.email.toLowerCase();
+            if (db.users.some(row => row.email === data.email))
+                fail(400, 'Email already registered');
+            const account: User = { ...base(), ...data };
+            db.users.push(account);
+            return account;
+        }
+        const account = find(db.users.filter(row => row.role !== 'student'), id, 'Staff');
+        if (method === 'PATCH') {
+            const { password: _password, ...data } = staffUpdate.parse(input);
+            if (account.id === user.id && data.role && data.role !== 'admin')
+                fail(400, 'Cannot demote yourself');
+            Object.assign(account, data);
+            return account;
+        }
+        if (method === 'DELETE') {
+            if (account.id === user.id)
+                fail(400, 'Cannot delete yourself');
+            db.users = db.users.filter(row => row.id !== id);
+            return { ok: true };
+        }
+        fail(405, 'Method not allowed');
     }
-    const account = find(db.users.filter(row => row.role !== 'student'), id, 'Staff');
-    if (method === 'PATCH') {
-        const { password: _password, ...data } = staffUpdate.parse(input);
-        if (account.id === user.id && data.role && data.role !== 'admin')
-            fail(400, 'Cannot demote yourself');
-        Object.assign(account, data);
-        return account;
-    }
-    if (method === 'DELETE') {
-        if (account.id === user.id)
-            fail(400, 'Cannot delete yourself');
-        db.users = db.users.filter(row => row.id !== id);
-        return { ok: true };
-    }
-    fail(405, 'Method not allowed');
 }

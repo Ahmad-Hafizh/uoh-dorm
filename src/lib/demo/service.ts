@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Store } from './models.ts';
+import type { Store, StudyProgram } from './models.ts';
+import { defaultProfileEditSettings, studyProgramSchema, studyProgramUpdate } from './models.ts';
 import { withStore, writeStore } from './store.ts';
 import { ApiError, fail, json, now } from './helpers.ts';
 import { accounts } from './accounts.ts';
@@ -7,6 +8,7 @@ import { requests } from './requests.ts';
 import { forms } from './forms.ts';
 import { files } from './files.ts';
 import { dashboard } from './dashboard.ts';
+import { complaintCategories, complaints } from './complaints.ts';
 async function dispatch(request: Request, db: Store): Promise<Response> {
     const parts = new URL(request.url).pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean), [resource, id, action, extra] = parts, method = request.method;
     let input: unknown = {};
@@ -49,12 +51,69 @@ async function dispatch(request: Request, db: Store): Promise<Response> {
             return json(user.role !== 'student' ? { forms_unread: 0, announcements_unread: 0, permissions_pending: db.permissions.filter(row => row.status === 'pending').length, permissions_updates: 0 } : { forms_unread: db.forms.filter(form => form.is_active && !db.responses.some(row => row.form_id === form.id && row.user_id === user.id)).length, announcements_unread: db.announcements.filter(row => row.created_at > (user.announcements_last_read_at ?? '')).length, permissions_pending: 0, permissions_updates: db.permissions.filter(row => row.user_id === user.id && ['approved', 'rejected'].includes(row.status) && (row.updated_at ?? '') > (user.permissions_last_read_at ?? '')).length });
         fail(405, 'Method not allowed');
     }
+    if (resource === 'settings') {
+        if (id === 'profile-permissions') {
+            if (method === 'GET')
+                return json(db.profile_edit_settings || defaultProfileEditSettings);
+            if (method === 'PATCH' || method === 'POST') {
+                if (user.role !== 'admin')
+                    fail(403, 'Admin only');
+                db.profile_edit_settings = {
+                    ...defaultProfileEditSettings,
+                    ...(db.profile_edit_settings || {}),
+                    ...(typeof input === 'object' && input ? input : {})
+                };
+                return save(db.profile_edit_settings);
+            }
+            fail(405, 'Method not allowed');
+        }
+        fail(404, 'Not found');
+    }
+    if (resource === 'programs') {
+        if (method === 'GET') {
+            return json(db.programs || []);
+        }
+        if (user.role !== 'admin')
+            fail(403, 'Admin only');
+        if (method === 'POST') {
+            const parsed = studyProgramSchema.parse(input);
+            if (!db.programs) db.programs = [];
+            const newProgram: StudyProgram = {
+                id: `prog-${Date.now()}`,
+                name_ar: parsed.name_ar,
+                name_en: parsed.name_en,
+                created_at: now(),
+            };
+            db.programs.push(newProgram);
+            return save(newProgram);
+        }
+        if (method === 'PATCH') {
+            if (!id) fail(400, 'Program ID required');
+            const prog = (db.programs || []).find(p => p.id === id);
+            if (!prog) fail(404, 'Program not found');
+            const parsed = studyProgramUpdate.parse(input);
+            Object.assign(prog, parsed);
+            return save(prog);
+        }
+        if (method === 'DELETE') {
+            if (!id) fail(400, 'Program ID required');
+            const idx = (db.programs || []).findIndex(p => p.id === id);
+            if (idx === -1) fail(404, 'Program not found');
+            db.programs!.splice(idx, 1);
+            return save({ ok: true });
+        }
+        fail(405, 'Method not allowed');
+    }
     if (resource === 'students' || resource === 'staff')
         result = accounts(db, user, resource, id, method, input);
-    else if (['complaints', 'documents', 'permissions', 'announcements'].includes(resource))
+    else if (resource === 'complaint-categories')
+        result = complaintCategories(db, user, id, method, input);
+    else if (resource === 'complaints')
+        result = complaints(db, user, id, action, method, input, request.url);
+    else if (['documents', 'permissions', 'announcements'].includes(resource))
         result = requests(db, user, resource, id, method, input);
     else if (resource === 'forms')
-        result = forms(db, user, id, action, extra, method, input);
+        result = await forms(db, user, id, action, extra, method, input);
     else if (resource === 'files')
         result = await files(db, user, id, action, request, save);
     else

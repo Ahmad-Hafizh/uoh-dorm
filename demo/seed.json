@@ -33,6 +33,16 @@
       "id": "profile",
       "user_id": "student",
       "full_name": "Demo Student",
+      "arabicName": "طالب تجريبي",
+      "englishName": "Demo Student",
+      "universityId": "441100123",
+      "arrivalDate": "2024-09-01T00:00:00.000Z",
+      "programStudy": "علوم الحاسب والمعلومات",
+      "academicYear": "2026/2027",
+      "residenceStatus": "INSIDE_SAKAN",
+      "address": null,
+      "academicStatus": "ACTIVE",
+      "adminNotes": "سجل أكاديمي وسكني منتظم",
       "nationality": "Indonesia",
       "building": "A",
       "room_number": "101",
@@ -136,5 +146,101 @@
     }
   ],
   "responses": [],
-  "files": []
+  "files": [],
+  "profile_edit_settings": {
+    "allowArabicName": false,
+    "allowEnglishName": false,
+    "allowPhone": true,
+    "allowNationality": false,
+    "allowUniversityId": false,
+    "allowProgramStudy": false,
+    "academicYear": false,
+    "allowArrivalDate": false,
+    "allowResidenceStatus": false,
+    "allowRoomNumber": false,
+    "allowAddress": true,
+    "allowPassportInfo": false,
+    "allowIqamahInfo": false,
+    "allowDocumentsUpload": true
+  },
+  "programs": [
+    {
+      "id": "prog-cs",
+      "name_ar": "علوم الحاسب والمعلومات",
+      "name_en": "Computer Science & Information",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-se",
+      "name_ar": "هندسة البرمجيات",
+      "name_en": "Software Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-is",
+      "name_ar": "نظم المعلومات الإدارية",
+      "name_en": "Management Information Systems",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-me",
+      "name_ar": "الهندسة الميكانيكية",
+      "name_en": "Mechanical Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ee",
+      "name_ar": "الهندسة الكهربائية",
+      "name_en": "Electrical Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ce",
+      "name_ar": "الهندسة المدنية",
+      "name_en": "Civil Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ba",
+      "name_ar": "إدارة الأعمال",
+      "name_en": "Business Administration",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-acc",
+      "name_ar": "المحاسبة",
+      "name_en": "Accounting",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-is-sharia",
+      "name_ar": "الشريعة والدراسات الإسلامية",
+      "name_en": "Sharia & Islamic Studies",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ar",
+      "name_ar": "اللغة العربية وآدابها",
+      "name_en": "Arabic Language & Literature",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-eng",
+      "name_ar": "اللغة الإنجليزية والترجمة",
+      "name_en": "English Language & Translation",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-med",
+      "name_ar": "الطب البشري والجراحة",
+      "name_en": "Medicine & Surgery",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-pharm",
+      "name_ar": "دكتور صيدلة",
+      "name_en": "Doctor of Pharmacy",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    }
+  ]
 }
