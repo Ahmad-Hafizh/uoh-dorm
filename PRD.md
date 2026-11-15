@@ -55,13 +55,30 @@ Request masuk ke /api/*
     │                    Login, logout, session, sign-up dll.
     │                    Langsung return — tidak masuk demo handler.
     │
-    └── /api/* (selain auth)  →  Session Bridge + Demo Handler
+    └── /api/* (selain auth)  →  Dual-Write Sync + Session Bridge + Demo Handler
+         │
+         ├── [Temporary Dual-Write Account Sync]:
+         │    Jika request adalah POST /api/students atau POST /api/staff,
+         │    request di-clone (`request.clone()`) untuk sinkronisasi kredensial (User & Account)
+         │    ke Neon PostgreSQL via Prisma (dengan bcryptjs hash) sebelum diteruskan.
+         │    Hal ini memastikan akun baru dapat langsung login via Better Auth.
          │
          ├── 1. Ambil session dari Better Auth (auth.api.getSession)
-         ├── 2. Ekstrak email prefix (e.g. "admin@uoh.edu.sa" → "admin")
-         ├── 3. Inject cookie `demo_user={emailPrefix}` ke request headers
-         └── 4. Forward ke demoHandler (Hono JSON store)
+         ├── 2. Gunakan full email session (`session.user.email`)
+         ├── 3. Inject cookie `demo_user=${session.user.email}` ke request headers
+         └── 4. Forward ke demoHandler (Hono JSON store dengan lookup user case-insensitive: id, email, atau prefix)
 ```
+
+**Catatan Bridge & Resolusi User `demo_user`:**
+- Pada `src/app/api/[[...path]]/route.ts`, bridge meneruskan full email `session.user.email` ke cookie `demo_user`.
+- Pada `src/lib/demo/service.ts`, pencarian pengguna (`db.users.find`) dilakukan secara *case-insensitive* dengan mencocokkan `id`, full `email`, ATAU prefix email (`email.split("@")[0]`). Hal ini memastikan baik akun seed (`id: "admin"`, `"staff"`, `"student"`) maupun akun baru yang ber-UUID (seperti `"student1@uoh.edu.sa"`) dapat ditemukan secara tepat tanpa error 401. Backward compatibility untuk `AuthContext.tsx` (yang meng-inject prefix di browser cookie) tetap terjaga 100%.
+
+**Catatan Sinkronisasi Dual-Write Akun (Temporary Dual-Write Account Sync):**
+Selama sistem berada dalam mode hybrid, pembuatan mahasiswa (`POST /api/students`) dan staf (`POST /api/staff`) menerapkan mekanisme *dual-write*:
+- Request dicegat pada `src/app/api/[[...path]]/route.ts` menggunakan stream cloning (`request.clone()`) agar payload stream asli tetap utuh dan dapat dibaca oleh `demoHandler`.
+- Kredensial akun (`email`, `password` yang di-hash dengan `bcryptjs`, dan `role`: `STUDENT` atau `STAFF`/`ADMIN`) disimpan ke tabel `user` dan `account` di Neon PostgreSQL via Prisma jika belum ada. `accountId` pada tabel `account` wajib bernilai identik dengan `user.id`.
+- Request asli kemudian diteruskan ke `demoHandler` untuk disimpan ke `demo/data.json`.
+- Seluruh proses dual-write dibungkus dalam blok `try/catch` fail-safe agar peringatan database dicatat ke konsol tanpa memblokir eksekusi `demoHandler`.
 
 **Client-side bridge (`AuthContext.tsx`):**
 - `AuthProvider` membungkus `useSession()` dari Better Auth
@@ -742,6 +759,7 @@ model FormResponse       { id, form_id, user_id, user_name, answers (Json), subm
 - ✅ **Better Auth Implementation** — login/logout/session via Better Auth + custom bcryptjs verifier
 - ✅ **Hybrid-Bridge System** — `route.ts` catch-all + `AuthContext.tsx` cookie bridge beroperasi
 - ✅ **Documents / Watsa'iq Module v2** — Form dinamis berdasarkan residency type, integrasi bandara IATA & date range picker tiket pulang, buka-tutup ticket window, workflow surat keterangan softcopy (upload admin & download mahasiswa), validasi visa exit/re-entry berbasis kedaluwarsa Iqomah, otomatisasi sinkronisasi data paspor baru ke profil mahasiswa, pencegahan spam duplikasi request, A4 printable dossier, modal print settings editor & live preview, serta proteksi keamanan IDOR server-side dan client-side.
+- ✅ **Temporary Dual-Write Account Sync** — Sinkronisasi otomatis kredensial akun mahasiswa dan staf baru dari `POST /api/students` dan `POST /api/staff` ke Neon DB (`user` dan `account`) via interceptor di `src/app/api/[[...path]]/route.ts`, sehingga user yang baru dibuat dapat langsung login via Better Auth (`/api/auth/sign-in/email`).
 
 ### 🔲 Berikutnya (NEXT / PENDING)
 - 🔲 **Migrasi Endpoint API Data** — secara bertahap memindahkan handler JSON demo ke Prisma queries langsung (target: satu endpoint per iterasi)

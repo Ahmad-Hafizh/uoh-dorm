@@ -21,7 +21,27 @@ async function dispatch(request: Request, db: Store): Promise<Response> {
             fail(400, 'Invalid JSON');
         }
     }
-    const cookie = request.headers.get('cookie')?.match(/(?:^|;\s*)demo_user=([^;]+)/)?.[1], current = db.users.find(user => user.id === cookie);
+    const rawCookie = request.headers.get('cookie')?.match(/(?:^|;\s*)demo_user=([^;]+)/)?.[1];
+    let cookieIdentifier: string | undefined;
+    if (rawCookie) {
+        try {
+            cookieIdentifier = decodeURIComponent(rawCookie).trim().toLowerCase();
+        } catch {
+            cookieIdentifier = rawCookie.trim().toLowerCase();
+        }
+    }
+    const current = cookieIdentifier
+        ? db.users.find((u) => {
+            const normId = u.id?.toLowerCase();
+            const normEmail = u.email?.toLowerCase();
+            const normPrefix = normEmail ? normEmail.split('@')[0] : '';
+            return (
+                normId === cookieIdentifier ||
+                normEmail === cookieIdentifier ||
+                normPrefix === cookieIdentifier
+            );
+        })
+        : undefined;
     if (resource === 'auth') {
         if (id === 'login' && method === 'POST') {
             const credentials = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(input);
