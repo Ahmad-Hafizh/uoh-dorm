@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 
 export type ResidenceStatus = "INSIDE_SAKAN" | "OUTSIDE_SAKAN";
 export type AcademicStatus = "ACTIVE" | "ON_LEAVE";
+export type ResidencyType = "IQOMAH" | "STUDENT_VISA";
 
 export interface ProfileEditSettings {
   allowArabicName: boolean;
@@ -114,6 +115,13 @@ export interface ProfileData {
   iqamah_expiry?: string;
   iqomah_expiry?: string;
 
+  residencyNumber?: string;
+  residency_number?: string;
+  residencyExpiry?: string;
+  residency_expiry?: string;
+  residencyType?: ResidencyType;
+  residency_type?: ResidencyType;
+
   residenceStatus?: ResidenceStatus | string;
   residence_status?: ResidenceStatus | string;
 
@@ -133,6 +141,7 @@ export interface ProfileData {
   building?: string;
   passport_file_id?: string | null;
   iqomah_file_id?: string | null;
+  residency_file_id?: string | null;
 }
 
 interface ProfileProps {
@@ -255,7 +264,7 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
     }
   }, [user, isStudent, queryId, initialProfile]);
 
-  const patchFile = async (field: "passport_file_id" | "iqomah_file_id", fileId: string | null) => {
+  const patchFile = async (field: "passport_file_id" | "iqomah_file_id" | "residency_file_id", fileId: string | null) => {
     try {
       const endpoint = isStudent ? "/students/me" : profile?.id ? `/students/${profile.id}` : "/students/me";
       const { data } = await api.patch(endpoint, { [field]: fileId });
@@ -302,8 +311,9 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
   const passportNumber = profile?.passportNumber || profile?.passport_number || "—";
   const passportExpiry = formatDate(profile?.passportExpiry ?? profile?.passport_expiry);
 
-  const iqamahNumber = profile?.iqamahNumber || profile?.iqamah_number || profile?.iqomah_number || "—";
-  const iqamahExpiry = formatDate(profile?.iqamahExpiry ?? profile?.iqamah_expiry ?? profile?.iqomah_expiry);
+  const iqamahNumber = profile?.iqamahNumber || profile?.iqamah_number || profile?.iqomah_number || profile?.residencyNumber || profile?.residency_number || "—";
+  const iqamahExpiry = formatDate(profile?.iqamahExpiry ?? profile?.iqamah_expiry ?? profile?.iqomah_expiry ?? profile?.residencyExpiry ?? profile?.residency_expiry);
+  const residencyType: ResidencyType = (profile?.residencyType || profile?.residency_type) === "STUDENT_VISA" ? "STUDENT_VISA" : "IQOMAH";
 
   const residenceStatus: ResidenceStatus =
     (profile?.residenceStatus || profile?.residence_status || "INSIDE_SAKAN").toUpperCase() === "OUTSIDE_SAKAN"
@@ -361,8 +371,8 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
       address: profile?.address || "",
       passportNumber: profile?.passportNumber || profile?.passport_number || "",
       passportExpiry: profile?.passportExpiry ? String(profile.passportExpiry).split("T")[0] : "",
-      iqamahNumber: profile?.iqamahNumber || profile?.iqamah_number || profile?.iqomah_number || "",
-      iqamahExpiry: profile?.iqamahExpiry ? String(profile.iqamahExpiry).split("T")[0] : "",
+      iqamahNumber: profile?.iqamahNumber || profile?.iqamah_number || profile?.iqomah_number || profile?.residencyNumber || profile?.residency_number || "",
+      iqamahExpiry: profile?.iqamahExpiry ? String(profile.iqamahExpiry).split("T")[0] : profile?.residencyExpiry ? String(profile.residencyExpiry).split("T")[0] : "",
     });
     setEditModalOpen(true);
   };
@@ -397,6 +407,11 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
         iqamahExpiry: editForm.iqamahExpiry || null,
         iqamah_expiry: editForm.iqamahExpiry || null,
         iqomah_expiry: editForm.iqamahExpiry || null,
+        // New canonical field names
+        residencyNumber: editForm.iqamahNumber,
+        residency_number: editForm.iqamahNumber,
+        residencyExpiry: editForm.iqamahExpiry || null,
+        residency_expiry: editForm.iqamahExpiry || null,
         full_name: editForm.englishName || editForm.arabicName,
       };
 
@@ -648,9 +663,23 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
               <Row label={lang === "ar" ? "رقم الجواز" : t("passport")} value={passportNumber} />
               <Row label={lang === "ar" ? "انتهاء الجواز" : t("passport_expiry")} value={passportExpiry} />
 
-              {/* Iqamah details */}
-              <Row label={lang === "ar" ? "رقم الإقامة" : t("iqomah_number")} value={iqamahNumber} />
-              <Row label={lang === "ar" ? "انتهاء الإقامة" : t("iqomah_expiry")} value={iqamahExpiry} />
+              {/* Iqamah / Residency details — label adapts to residency type */}
+              <Row
+                label={
+                  residencyType === "STUDENT_VISA"
+                    ? lang === "ar" ? "رقم فيزا الطالب" : "Nomor Visa Pelajar"
+                    : lang === "ar" ? "رقم الإقامة" : "Nomor Iqomah"
+                }
+                value={iqamahNumber}
+              />
+              <Row
+                label={
+                  residencyType === "STUDENT_VISA"
+                    ? lang === "ar" ? "انتهاء فيزا الطالب" : "Visa Expiry"
+                    : lang === "ar" ? "انتهاء الإقامة" : t("iqomah_expiry")
+                }
+                value={iqamahExpiry}
+              />
 
               {/* Role-Based Access: Render Admin Notes ONLY IF current session user has role === 'ADMIN' or role === 'STAFF' */}
               {isStaffOrAdmin && (
@@ -690,10 +719,14 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">{t("iqomah_file")}</Label>
+                <Label className="text-xs">
+                  {residencyType === "STUDENT_VISA"
+                    ? lang === "ar" ? "صورة فيزا الطالب" : "Student Visa Scan"
+                    : t("iqomah_file")}
+                </Label>
                 <FileUpload
                   kind="iqomah"
-                  value={profile?.iqomah_file_id || null}
+                  value={profile?.residency_file_id || profile?.iqomah_file_id || null}
                   onChange={(id: string | null) => {
                     if (canEditField("allowDocumentsUpload")) patchFile("iqomah_file_id", id);
                     else toast.error(lang === "ar" ? "رفع الوثائق مغلق حالياً من قبل الإدارة" : t("locked_by_admin"));
@@ -1145,14 +1178,22 @@ export default function Profile({ initialProfile }: ProfileProps = {}) {
                   lockedLabel={lang === "ar" ? "مغلق" : t("locked_by_admin")}
                 />
                 <EditField
-                  label={lang === "ar" ? "رقم الإقامة" : t("iqomah_number")}
+                  label={
+                    residencyType === "STUDENT_VISA"
+                      ? lang === "ar" ? "رقم فيزا الطالب" : "Nomor Visa Pelajar"
+                      : lang === "ar" ? "رقم الإقامة" : "Nomor Iqomah"
+                  }
                   value={editForm.iqamahNumber}
                   onChange={(v) => setEditForm({ ...editForm, iqamahNumber: v })}
                   disabled={!canEditField("allowIqamahInfo")}
                   lockedLabel={lang === "ar" ? "مغلق" : t("locked_by_admin")}
                 />
                 <EditField
-                  label={lang === "ar" ? "انتهاء الإقامة" : t("iqomah_expiry")}
+                  label={
+                    residencyType === "STUDENT_VISA"
+                      ? lang === "ar" ? "انتهاء فيزا الطالب" : "Visa Expiry"
+                      : lang === "ar" ? "انتهاء الإقامة" : t("iqomah_expiry")
+                  }
                   type="date"
                   value={editForm.iqamahExpiry}
                   onChange={(v) => setEditForm({ ...editForm, iqamahExpiry: v })}

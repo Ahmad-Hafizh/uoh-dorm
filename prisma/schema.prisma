@@ -22,6 +22,11 @@ enum ResidenceStatus {
   OUTSIDE_SAKAN
 }
 
+enum ResidencyType {
+  IQOMAH
+  STUDENT_VISA
+}
+
 enum AcademicStatus {
   ACTIVE
   ON_LEAVE
@@ -58,6 +63,21 @@ enum ComplaintPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum PermissionType {
+  OUT_OF_TOWN
+  OVERNIGHT
+  VACATION
+}
+
+enum PermissionStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  COMPLETED
+  REJECTED
+  CANCELLED
 }
 
 //------------------------------------------------------------
@@ -157,14 +177,17 @@ model Student {
   roomNumber      String?         @map("room_number")
   address         String?
   academicStatus  AcademicStatus  @default(ACTIVE) @map("academic_status")
-  passportNumber  String          @map("passport_number")
-  passportExpiry  DateTime        @map("passport_expiry")
-  iqamahNumber    String          @map("iqamah_number")
-  iqamahExpiry    DateTime        @map("iqamah_expiry")
-  adminNotes      String?         @map("admin_notes")
-  photoUrl        String?         @map("photo_url")
-  passportFileId  String?         @map("passport_file_id")
-  iqamahFileId    String?         @map("iqamah_file_id")
+  passportNumber   String          @map("passport_number")
+  passportExpiry   DateTime        @map("passport_expiry")
+  passportIssueDate DateTime?       @map("passport_issue_date")
+  passportIssuingOffice String?     @map("passport_issuing_office")
+  residencyNumber  String          @map("residency_number")
+  residencyExpiry  DateTime        @map("residency_expiry")
+  residencyType    ResidencyType   @default(IQOMAH) @map("residency_type")
+  adminNotes       String?         @map("admin_notes")
+  photoUrl         String?         @map("photo_url")
+  passportFileId   String?         @map("passport_file_id")
+  residencyFileId  String?         @map("residency_file_id")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime?       @updatedAt   @map("updated_at")
 
@@ -240,10 +263,29 @@ model DocumentRequest {
   attachment_file_ids Json?    @map("attachment_file_ids")
   status              String
   admin_note          String?  @map("admin_note")
+  dynamic_data        Json?    @map("dynamic_data")
+  result_file_id      String?  @map("result_file_id")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime? @updatedAt   @map("updated_at")
 
   @@map("document_requests")
+}
+
+model SystemSetting {
+  id                   String   @id @default("global")
+  is_ticket_window_open Boolean  @default(false) @map("is_ticket_window_open")
+  print_letterhead_url String?  @map("print_letterhead_url")
+  print_logo_url       String?  @map("print_logo_url")
+  print_header_title_ar String? @map("print_header_title_ar")
+  print_header_subtitle_ar String? @map("print_header_subtitle_ar")
+  print_header_title_en String? @map("print_header_title_en")
+  print_header_subtitle_en String? @map("print_header_subtitle_en")
+  print_layout_style   String   @default("standard") @map("print_layout_style")
+  print_signature_name String?  @map("print_signature_name")
+  print_footer_text    String?  @map("print_footer_text")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
 }
 
 model FileRecord {
@@ -275,18 +317,22 @@ model Announcement {
 }
 
 model Permission {
-  id               String   @id @default(uuid())
-  user_id          String   @map("user_id")
-  user_name        String   @map("user_name")
-  permission_type  String   @map("permission_type")
-  destination      String
-  start_date       DateTime @map("start_date")
-  end_date         DateTime @map("end_date")
-  reason           String
-  status           String   @default("PENDING")
-  admin_note       String?  @map("admin_note")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime? @updatedAt   @map("updated_at")
+  id                   String           @id @default(uuid())
+  user_id              String           @map("user_id")
+  user_name            String           @map("user_name")
+  permission_type      PermissionType   @map("permission_type")
+  destination          String?
+  transportation_mode  String?          @map("transportation_mode")
+  overnight_address    String?          @map("overnight_address")
+  emergency_contact    String?          @map("emergency_contact")
+  ticket_attachment_id String?          @map("ticket_attachment_id")
+  start_date           DateTime         @map("start_date")
+  end_date             DateTime         @map("end_date")
+  reason               String
+  status               PermissionStatus @default(PENDING)
+  admin_note           String?          @map("admin_note")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime?        @updatedAt   @map("updated_at")
 
   @@map("permissions")
 }

@@ -99,6 +99,8 @@ function SidebarContent({
     announcements_unread: number;
     permissions_updates?: number;
     permissions_pending?: number;
+    documents_updates?: number;
+    documents_pending?: number;
   };
   role?: string;
 }) {
@@ -146,6 +148,16 @@ function SidebarContent({
           icon={FileText}
           label={t("documents")}
           testid="nav-documents"
+          badge={
+            <NumberBadge
+              count={
+                role === "STUDENT"
+                  ? counts?.documents_updates
+                  : counts?.documents_pending
+              }
+              testid="badge-documents"
+            />
+          }
         />
         <NavItem
           to="/forms"
@@ -257,7 +269,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* ── Desktop sidebar ──────────────────────────────── */}
-      <aside className="hidden lg:flex fixed inset-y-0 start-0 w-72 border-e border-slate-200 bg-white z-30 overflow-hidden">
+      <aside className="hidden lg:flex fixed inset-y-0 start-0 w-72 border-e border-slate-200 bg-white z-30 overflow-hidden print:hidden">
         <SidebarContent
           docsIncomplete={docsIncomplete}
           counts={counts}
@@ -266,9 +278,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Content wrapper ──────────────────────────────── */}
-      <div className="lg:ps-72 min-h-screen flex flex-col">
+      <div className="lg:ps-72 min-h-screen flex flex-col print:ps-0 print:m-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur-md">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/85 backdrop-blur-md print:hidden">
           <div className="flex items-center gap-3 px-4 sm:px-6 h-16">
             {/* Mobile menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -367,7 +379,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 print:p-0 print:m-0">{children}</main>
       </div>
     </div>
   );

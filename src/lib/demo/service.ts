@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Store, StudyProgram } from './models.ts';
-import { defaultProfileEditSettings, studyProgramSchema, studyProgramUpdate } from './models.ts';
+import { defaultProfileEditSettings, defaultGeofenceSettings, defaultPermissionSettings, defaultSystemSettings, studyProgramSchema, studyProgramUpdate } from './models.ts';
 import { withStore, writeStore } from './store.ts';
 import { ApiError, fail, json, now } from './helpers.ts';
 import { accounts } from './accounts.ts';
@@ -43,12 +43,36 @@ async function dispatch(request: Request, db: Store): Promise<Response> {
         return json(dashboard(db, user, id));
     if (resource === 'notifications') {
         if (id === 'mark-read' && method === 'POST') {
-            const { resource: read } = z.object({ resource: z.enum(['announcements', 'permissions']) }).parse(input);
-            user[read === 'announcements' ? 'announcements_last_read_at' : 'permissions_last_read_at'] = now();
+            const { resource: read } = z.object({ resource: z.enum(['announcements', 'permissions', 'documents']) }).parse(input);
+            const key = read === 'announcements'
+                ? 'announcements_last_read_at'
+                : read === 'permissions'
+                    ? 'permissions_last_read_at'
+                    : 'documents_last_read_at';
+            user[key] = now();
             return save({ ok: true });
         }
-        if (id === 'counts' && method === 'GET')
-            return json(user.role !== 'student' ? { forms_unread: 0, announcements_unread: 0, permissions_pending: db.permissions.filter(row => row.status === 'pending').length, permissions_updates: 0 } : { forms_unread: db.forms.filter(form => form.is_active && !db.responses.some(row => row.form_id === form.id && row.user_id === user.id)).length, announcements_unread: db.announcements.filter(row => row.created_at > (user.announcements_last_read_at ?? '')).length, permissions_pending: 0, permissions_updates: db.permissions.filter(row => row.user_id === user.id && ['approved', 'rejected'].includes(row.status) && (row.updated_at ?? '') > (user.permissions_last_read_at ?? '')).length });
+        if (id === 'counts' && method === 'GET') {
+            if (user.role !== 'student') {
+                return json({
+                    forms_unread: 0,
+                    announcements_unread: 0,
+                    permissions_pending: db.permissions.filter(row => (row.status || '').toLowerCase() === 'pending').length,
+                    permissions_updates: 0,
+                    documents_pending: db.documents.filter(row => ['pending', 'in_progress'].includes((row.status || '').toLowerCase())).length,
+                    documents_updates: 0,
+                });
+            } else {
+                return json({
+                    forms_unread: db.forms.filter(form => form.is_active && !db.responses.some(row => row.form_id === form.id && row.user_id === user.id)).length,
+                    announcements_unread: db.announcements.filter(row => row.created_at > (user.announcements_last_read_at ?? '')).length,
+                    permissions_pending: 0,
+                    permissions_updates: db.permissions.filter(row => row.user_id === user.id && ['approved', 'rejected'].includes((row.status || '').toLowerCase()) && (row.updated_at ?? '') > (user.permissions_last_read_at ?? '')).length,
+                    documents_pending: 0,
+                    documents_updates: db.documents.filter(row => row.user_id === user.id && (row.updated_at ?? '') > (user.documents_last_read_at ?? '')).length,
+                });
+            }
+        }
         fail(405, 'Method not allowed');
     }
     if (resource === 'settings') {
@@ -64,6 +88,52 @@ async function dispatch(request: Request, db: Store): Promise<Response> {
                     ...(typeof input === 'object' && input ? input : {})
                 };
                 return save(db.profile_edit_settings);
+            }
+            fail(405, 'Method not allowed');
+        }
+        if (id === 'geofence') {
+            if (method === 'GET')
+                return json(db.geofence_settings || defaultGeofenceSettings);
+            if (method === 'PATCH' || method === 'POST') {
+                if (user.role !== 'admin')
+                    fail(403, 'Admin only');
+                db.geofence_settings = {
+                    ...defaultGeofenceSettings,
+                    ...(db.geofence_settings || {}),
+                    ...(typeof input === 'object' && input ? input : {})
+                };
+                return save(db.geofence_settings);
+            }
+            fail(405, 'Method not allowed');
+        }
+        if (id === 'permissions') {
+            if (method === 'GET')
+                return json(db.permission_settings || defaultPermissionSettings);
+            if (method === 'PATCH' || method === 'POST') {
+                if (user.role !== 'admin')
+                    fail(403, 'Admin only');
+                db.permission_settings = {
+                    ...defaultPermissionSettings,
+                    ...(db.permission_settings || {}),
+                    ...(typeof input === 'object' && input ? input : {})
+                };
+                return save(db.permission_settings);
+            }
+            fail(405, 'Method not allowed');
+        }
+        if (id === 'system' || id === 'ticket-window') {
+            if (method === 'GET')
+                return json(db.system_settings || defaultSystemSettings);
+            if (method === 'PATCH' || method === 'POST') {
+                if (user.role !== 'admin' && user.role !== 'staff')
+                    fail(403, 'Admin or staff only');
+                db.system_settings = {
+                    ...defaultSystemSettings,
+                    ...(db.system_settings || {}),
+                    ...(typeof input === 'object' && input ? input : {}),
+                    updated_at: now(),
+                };
+                return save(db.system_settings);
             }
             fail(405, 'Method not allowed');
         }
@@ -129,7 +199,7 @@ export async function demoHandler(request: Request): Promise<Response> {
     }
     catch (error) {
         if (error instanceof ApiError)
-            return json({ detail: error.message }, error.status);
+            return json({ detail: error.message, message: error.message }, error.status);
         if (error instanceof z.ZodError)
             return json({ detail: error.issues.map(issue => ({ msg: issue.message, loc: issue.path })) }, 422);
         console.error('Demo API failed', error);

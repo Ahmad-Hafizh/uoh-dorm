@@ -208,19 +208,29 @@ Akun berikut dibuat oleh `seed.js` dan tersimpan di **Neon PostgreSQL** (tabel `
 ### 5.3 Manajemen Mahasiswa (`/students`) — Staff & Admin only
 
 **Fitur:**
-- List mahasiswa dengan search (nama, kebangsaan, nomor kamar, nomor iqomah)
-- Filter tab: All / Missing Passport / Missing Iqomah / Missing Any
+- List mahasiswa dengan search (nama, kebangsaan, nomor kamar, nomor identitas/iqomah)
+- Filter tab: All / Missing Passport / Missing Iqomah/Residency / Missing Any
 - Create mahasiswa baru (dengan email & password akun)
 - Edit data mahasiswa (tanpa ubah email)
 - Hapus mahasiswa (admin only) + cascade hapus user & responses
-- Upload passport & iqomah file per mahasiswa
+- Upload passport & file dokumen identitas (Iqomah / Visa Pelajar) per mahasiswa
 - View thumbnail file yang sudah diupload
+- **Smart Form Auto-Detection (React Hook Form + Zod):**
+  - Label input: `"Nomor Identitas (Iqomah / Zair)"` (menggantikan "Nomor Iqomah").
+  - **Logika Auto-Detect Nomor Identitas Saudi:**
+    - Jika dimulai angka `"2"` (contoh: 2553322559) ➔ Set `residency_type` secara background menjadi `IQOMAH`.
+    - Jika dimulai angka `"3"` atau `"4"` (contoh: 4344396017) ➔ Set `residency_type` secara background menjadi `STUDENT_VISA`.
+  - **Badge Real-time (Shadcn UI):**
+    - Terdeteksi `"2"`: Menampilkan badge biru bertuliskan `"Hawiyyah Muqim (Iqomah)"`.
+    - Terdeteksi `"3"` atau `"4"`: Menampilkan badge hijau bertuliskan `"Visa Ta'limiyyah (Zair)"`.
 
 **Fields mahasiswa:**
-`full_name`, `nationality`, `passport_number`, `passport_expiry`, `iqomah_number`, `iqomah_expiry`, `phone`, `building`, `room_number`, `program`, `academic_year`, `passport_file_id`, `iqomah_file_id`
+`full_name`, `arabic_name`, `english_name`, `university_id`, `nationality`, `passport_number`, `passport_expiry`, `residency_number`, `residency_expiry`, `residency_type`, `phone`, `building`, `room_number`, `program`, `academic_year`, `passport_file_id`, `residency_file_id` (dengan backward-compatibility `iqomah_number`, `iqomah_expiry`, `iqomah_file_id`)
 
 **Validasi:**
-- `passport_expiry` & `iqomah_expiry` → format ISO date
+- `passport_expiry` & `residency_expiry` → format ISO date
+- `residency_number` → Wajib diisi, minimal 10 digit, regex `/^[234]\d{9}$/` (tepat 10 digit numerik dan diawali angka 2, 3, atau 4)
+- `residency_type` → Di-*infer* otomatis sebelum submit berdasarkan digit pertama `residency_number`
 - Email unik
 
 ### 5.4 Manajemen Staf (`/staff`) — Admin only
@@ -255,25 +265,68 @@ pending → assigned → in_progress → resolved
 - `ComplaintMessage` — thread pesan per komplain (termasuk internal notes)
 - `ticket_number` — nomor tiket unik per komplain
 
-### 5.6 Permintaan Dokumen (`/documents`)
+### 5.6 Permintaan Dokumen / Watsa'iq (`/documents`)
 
-**Student:** Ajukan request dokumen, lampirkan file
-**Staff/Admin:** Lihat semua request, update status + admin note, view lampiran
+Modul pengurusan dokumen imigrasi, akademik, dan perizinan resmi mahasiswa internasional Universitas Ha'il.
 
-**Tipe dokumen:**
-- `iqomah_renewal` — Pembaruan iqomah
-- `return_ticket` — Tiket pulang
-- `letter_of_enrollment` — Surat keterangan mahasiswa
-- `exit_reentry_visa` — Visa keluar/masuk kembali
-- `other`
+**Student:** 
+- Mengajukan permohonan dokumen baru melalui formulir dinamis sesuai residency type (`IQOMAH` atau `STUDENT_VISA`).
+- Mengedit catatan/lampiran/data dinamis atau membatalkan permohonan selama status masih `pending`.
+- Mengunduh berkas surat digital resmi (PDF softcopy) yang telah disetujui dan diunggah oleh staf/admin.
+- Memantau status permohonan dan menerima notifikasi update di dashboard dan badge menu sidebar.
+
+**Staff/Admin:** 
+- Melihat seluruh permohonan dokumen masuk, melakukan filter pencarian berdasarkan nama/identitas/tipe/status.
+- Membuka dossier mahasiswa lengkap dengan scan identitas resmi (paspor & iqomah/visa).
+- Mencetak berkas resmi (*A4 Official Printable Dossier*) siap tanda tangan untuk diajukan ke Jawazat/Kementerian.
+- Mengunggah berkas surat hasil (*finalized softcopy PDF*) sebelum menyelesaikan status permohonan `letter_of_enrollment`.
+- Menyesuaikan tata letak dan teks kop surat cetak (*Print Settings*) dengan fitur *Live Preview* A4.
+- Mengontrol buka-tutup periode pengajuan tiket pesawat (*Ticket Window* toggle switch).
+
+**Tipe Dokumen & Alur Khusus:**
+1. `iqomah_renewal` (تجديد الإقامة) — Pembaruan iqomah. Permohonan murni tanpa upload dokumen; ketika staf menyelesaikan pembaruan, sistem mengirimkan notifikasi agar mahasiswa memperbarui nomor/masa berlaku iqomah pada profilnya.
+2. `return_ticket` (تذكرة سفر) — Tiket pulang tahunan:
+   - **Ticket Window Gating:** Hanya dapat diajukan jika staf/admin mengaktifkan `is_ticket_window_open` melalui switch toggle di halaman `/documents`.
+   - **Airport Combobox:** Pemilihan bandara tujuan terintegrasi pencarian kode IATA, kota, dan negara.
+   - **Trip Type & Dynamic Date Picker:** Pilihan `one_way` (Single Date Picker untuk departure) atau `round_trip` (Shadcn Date Range Picker terintegrasi popover untuk memilih tanggal keberangkatan dan kepulangan sekaligus).
+3. `letter_of_enrollment` (خطاب قيد) — Surat keterangan mahasiswa aktif:
+   - **Addressed To:** Pilihan instansi tujuan ("Bank", "Jawazat / Immigration", "Embassy", "Other" dengan kolom input teks spesifik).
+   - **Letter Language:** Pilihan bahasa surat ("Arabic" / "English").
+   - **Delivery Method:** Pilihan metode pengambilan ("Softcopy via app" / "Hardcopy pick up at office").
+   - **Admin Mandatory Upload:** Jika mahasiswa memilih "Softcopy", admin diwajibkan mengunggah file PDF surat yang telah distempel/ditandatangani (`result_file_id`) sebelum status dapat diubah menjadi `COMPLETED`.
+   - **Student Download:** Mahasiswa dapat langsung mengunduh file surat digital resmi melalui tombol "Download Letter".
+4. `exit_reentry_visa` (تأشيرة خروج وعودة) — Visa keluar dan masuk kembali:
+   - **Residency Gating:** Hanya dapat diajukan oleh mahasiswa berstatus `IQOMAH`.
+   - **Visa Validity Mode:** Pilihan "Return to KSA before" (Date picker) atau "Duration in Days" (Input angka durasi hari).
+   - **Validasi Masa Berlaku Iqomah:** Tanggal kembali atau durasi hari yang diminta tidak boleh melebihi sisa masa berlaku Iqomah mahasiswa. Jika melebihi, sistem memblokir submit form, menonaktifkan tombol, dan menampilkan alert peringatan imigrasi.
+5. `update_passport` (تحديث الجواز) — Permohonan pembaruan data paspor baru:
+   - Form dinamis: Nomor paspor baru, tanggal terbit (`date_of_issue`), tanggal kedaluwarsa (`date_of_expiry`), kantor penerbit (`issuing_office`), dan upload scan paspor baru (`passport_file`).
+   - **Automated Profile Sync:** Saat admin menyetujui dan menandai status `COMPLETED`, sistem backend secara otomatis menyinkronkan data paspor baru ke profil mahasiswa (`Student`).
+6. `other` (أخرى) — Permohonan dokumen administratif lainnya.
+
+**Pencegahan Duplikasi (Anti-Spam Request):**
+- Validasi server-side dan client-side mencegah pengajuan berulang untuk tipe dokumen yang sama jika masih memiliki permohonan berstatus `pending` atau `in_progress` (HTTP 409 Conflict).
+
+**Kustomisasi Cetak & Live Preview A4:**
+- Modal *Print Settings* dengan sistem Tabs (Shadcn Tabs):
+  - **Tab Editor:** Pemilihan gaya kop surat (`standard` teks 3 kolom dinamis + logo tengah vs `custom_image` banner penuh), input teks baris kop kanan (Arab) dan kiri (Inggris), upload logo 1:1, nama tanda tangan pengawas asrama (`print_signature_name`), dan catatan footer (`print_footer_text`).
+  - **Tab Preview:** Pratinjau lembar kerja A4 langsung (`aspect-[1/1.414]`) yang secara reaktif menampilkan hasil cetak dokumen dummy dan area tanda tangan secara real-time.
+
+**Sistem Keamanan & Proteksi IDOR (Data Privacy & Access Control):**
+- Mengacu pada Bagian 14 Aturan ke-3, mahasiswa HANYA dapat melihat dan mengelola dokumen miliknya sendiri (`user_id === session.user.id`).
+- Akses langsung (`GET /api/documents/:id`) ke dokumen milik orang lain ditolak instan (HTTP 403 Forbidden).
+- Mahasiswa dilarang mengubah status dokumen menjadi `approved`/`completed` atau mengisi `admin_note` (HTTP 403 Forbidden).
+- Berkas unduhan surat hasil (`result_file_id`) diisolasi agar hanya pemilik permohonan dan admin/staff yang dapat mengunduhnya.
+- Elemen UI manajemen dokumen ("Print Report", "Student Dossier", "Update Status") disembunyikan sepenuhnya dari tampilan akun mahasiswa.
 
 **Status lifecycle:**
 ```
 pending → in_progress → approved → completed
                       → rejected
+        → cancelled (oleh mahasiswa)
 ```
 
-**Fields:** `request_type`, `notes`, `attachment_file_ids[]`, `admin_note`
+**Fields:** `user_id`, `user_name`, `request_type`, `notes`, `attachment_file_ids[]`, `dynamic_data` (Json), `result_file_id` (String?), `status`, `admin_note`, `createdAt`, `updatedAt`
 
 ### 5.7 Pengumuman (`/announcements`)
 
@@ -290,24 +343,38 @@ pending → in_progress → approved → completed
 
 ### 5.8 Izin Keluar (`/permissions`)
 
-**Student:** Ajukan izin baru
-**Staff/Admin:** Review & update status izin
+**Student:** Ajukan izin baru, lakukan Self Check-in ("Mulai Perjalanan") dan Check-out ("Saya Sudah Kembali")
+**Staff/Admin:** Review & update status izin, pantau Overstay di Dashboard
 
 **Tipe izin:**
-- `outing` — Keluar sebentar
-- `overnight` — Menginap di luar
-- `vacation` — Liburan
+- `OUT_OF_TOWN` — Safar Luar Kota / Domestik (memerlukan kota tujuan & moda transportasi)
+- `OVERNIGHT` — Menginap / Mabit di dalam kota (memerlukan alamat menginap & kontak darurat)
+- `VACATION` — Liburan / Safar Internasional (opsi lampiran tiket perjalanan)
 
 **Status lifecycle:**
 ```
-pending → approved
-        → rejected
+PENDING → APPROVED → ACTIVE (On Leave) → COMPLETED (Returned)
+        → REJECTED
+        → CANCELLED (Dibatalkan oleh mahasiswa)
 ```
 
-**Fields:** `permission_type`, `destination`, `start_date`, `end_date`, `reason`, `admin_note`
+**Fields:** `permission_type`, `destination`, `transportation_mode`, `overnight_address`, `emergency_contact` (opsional), `ticket_attachment_id`, `start_date`, `end_date`, `reason`, `admin_note`
 
-**Validasi:** `end_date >= start_date`
-**Notifikasi:** Mahasiswa mendapat badge saat status berubah (approved/rejected), badge hilang setelah buka halaman permissions
+**Validasi & Fitur Krusial:**
+- `end_date >= start_date`
+- **Validasi Iqomah 3 Bulan:** Pada saat tipe `VACATION` dipilih, sistem membandingkan `start_date` dengan masa berlaku `iqomah_expiry`. Jika tersisa kurang dari 90 hari (3 bulan), muncul alert peringatan imigrasi & visa exit/re-entry.
+- **Edit Izin Status PENDING:** Mahasiswa dapat mengedit data permohonan izinnya selama statusnya masih `PENDING`.
+- **Self Check-in / Check-out & Geofencing:**
+  - Mahasiswa dapat menekan tombol **"Start Journey"** saat izin berstatus `APPROVED` dan tanggal hari ini sudah mencapai `start_date` (mengubah status ke `ACTIVE`).
+  - **Auto Start Journey (24 Jam):** Jika mahasiswa lupa atau belum menekan tombol "Start Journey", sistem secara otomatis memicu start journey dan mengubah status izin menjadi `ACTIVE` dalam waktu 24 jam setelah jadwal `start_date`.
+  - **Manual Return Only:** Tombol **"I Have Returned"** (`COMPLETED`) HANYA dapat ditekan secara manual oleh mahasiswa melalui verifikasi lokasi geofencing (tidak di-auto-complete oleh sistem).
+  - **Pembatalan Perjalanan (Cancel Journey):** Tersedia tombol "Cancel Trip" pada izin yang telah di-approve jika mahasiswa batal berangkat. Dilengkapi modal konfirmasi untuk menghindari klik tidak sengaja, mengubah status menjadi `CANCELLED` dan memindahkannya ke tab History.
+  - **Sistem Peringatan Terlambat (Late Return / Overstay Warning):** Muncul peringatan otomatis di Dashboard Mahasiswa, kartu izin, dan Dashboard Admin jika izin berstatus `ACTIVE` namun tanggal hari ini telah melewati `end_date`.
+  - **Validasi Geofencing (Lokasi GPS):** Saat menekan "I Have Returned", sistem mendeteksi koordinat GPS mahasiswa dan memvalidasi jaraknya terhadap koordinat asrama menggunakan rumus Haversine. Jika berada di luar radius yang ditentukan (misal > 500m), sistem menolak check-in dan menampilkan peringatan jarak.
+  - **Pengaturan Geofencing & Approval Note Admin:** Khusus role `Admin`, tersedia modal pengaturan terpadu dengan tab konfigurasi Default Approval Note (mendukung template bilingual EN/AR) dan tab Geofencing lokasi asrama.
+- **Shortcut Aksi Cepat Staff & Admin:**
+  - **Tombol Approve (Hijau):** Otomatis menyetujui izin dan melampirkan default admin note sesuai bahasa aktif aplikasi (English atau Arabic).
+  - **Tombol Reject (Merah):** Membuka popup konfirmasi penolakan dengan input catatan alasan (`admin_note`) opsional.
 
 ### 5.9 Formulir Digital (`/forms`)
 
@@ -337,8 +404,11 @@ pending → approved
 
 **All roles:** Lihat info akun (nama, email, role badge)
 **Student only:**
-- Lihat data profil lengkap (data akademik, paspor, iqomah)
-- Upload/replace/hapus file paspor dan iqomah
+- Lihat data profil lengkap (data akademik, paspor, nomor identitas)
+- **Label Identitas Adaptif:**
+  - Jika `residency_type === "IQOMAH"` ➔ menampilkan label `"Nomor Iqomah"` (atau "رقم الإقامة").
+  - Jika `residency_type === "STUDENT_VISA"` ➔ menampilkan label `"Nomor Visa Pelajar"` (atau "رقم فيزا الطالب").
+- Upload/replace/hapus file paspor dan dokumen identitas (Iqomah / Visa Pelajar)
 
 ### 5.11 File Management
 
@@ -356,7 +426,7 @@ pending → approved
 
 **Fields:** `id`, `original_filename`, `content_type`, `size`, `kind`, `uploaded_by`
 
-**Kinds:** `passport` | `iqomah` | `general`
+**Kinds:** `passport` | `iqomah` (dokumen identitas Iqomah / Visa Pelajar) | `general`
 
 ### 5.12 Program Studi (`/api/programs`)
 
@@ -486,14 +556,20 @@ model Verification {
 ### 8.2 Domain Models
 
 ```prisma
+enum ResidencyType {
+  IQOMAH
+  STUDENT_VISA
+}
+
 model Student {
   id, user_id (unique), universityId (unique), arabicName, englishName,
   nationality, phone, arrivalDate?, programStudy, academicYear,
   residenceStatus (enum: INSIDE_SAKAN/OUTSIDE_SAKAN),
   roomNumber?, address?,
   academicStatus (enum: ACTIVE/ON_LEAVE),
-  passportNumber, passportExpiry, iqamahNumber, iqamahExpiry,
-  adminNotes?, photoUrl?, passportFileId?, iqamahFileId?,
+  passportNumber, passportExpiry, passportIssueDate?, passportIssuingOffice?,
+  residencyNumber, residencyExpiry, residencyType (enum: ResidencyType, default: IQOMAH),
+  adminNotes?, photoUrl?, passportFileId?, residencyFileId?,
   createdAt, updatedAt?
 }
 
@@ -509,7 +585,8 @@ model Complaint {
 }
 
 model ComplaintMessage   { id, complaintId, senderId, message, attachments (Json?), is_internal_note, createdAt }
-model DocumentRequest    { id, user_id, user_name, request_type, notes?, attachment_file_ids (Json?), status, admin_note?, createdAt, updatedAt? }
+model DocumentRequest    { id, user_id, user_name, request_type, notes?, attachment_file_ids (Json?), dynamic_data (Json?), result_file_id?, status, admin_note?, createdAt, updatedAt? }
+model SystemSetting      { id, is_ticket_window_open, print_letterhead_url?, print_logo_url?, print_header_title_ar?, print_header_subtitle_ar?, print_header_title_en?, print_header_subtitle_en?, print_layout_style, print_signature_name?, print_footer_text?, updatedAt }
 model FileRecord         { id, storage_path, original_filename, content_type, size, kind, uploaded_by, is_deleted?, createdAt }
 model Announcement       { id, title_en, title_ar, body_en, body_ar, pinned?, author_name, form_id?, createdAt }
 model Permission         { id, user_id, user_name, permission_type, destination, start_date, end_date, reason, status, admin_note?, createdAt, updatedAt? }
@@ -561,8 +638,9 @@ model FormResponse       { id, form_id, user_id, user_name, answers (Json), subm
 | PATCH | `/api/complaints/{id}` | Staff/Admin | Update komplain (status, priority, assignment, attachments) |
 | GET/POST | `/api/complaint-categories` | Auth/Admin | List & buat kategori komplain |
 | PATCH/DELETE | `/api/complaint-categories/{id}` | Admin | Update & hapus kategori |
-| GET/POST | `/api/documents` | Auth | List & ajukan dokumen |
-| PATCH | `/api/documents/{id}` | Staff/Admin | Update dokumen |
+| GET/POST | `/api/documents` | Auth | List & ajukan dokumen (Student: hanya miliknya; Staff/Admin: semua) |
+| GET/PATCH/DELETE | `/api/documents/{id}` | Auth | Detail, update & batalkan dokumen (Dilindungi IDOR; Student hanya miliknya yang pending) |
+| GET/PATCH | `/api/settings/system` | Staff/Admin | Konfigurasi sistem global (Ticket window & preferensi cetak dossier) |
 | GET/POST | `/api/announcements` | Auth/Staff | List & buat pengumuman |
 | DELETE | `/api/announcements/{id}` | Staff/Admin | Hapus pengumuman |
 | GET/POST | `/api/permissions` | Auth | List & ajukan izin |
@@ -663,6 +741,7 @@ model FormResponse       { id, form_id, user_id, user_name, answers (Json), subm
 - ✅ **Prisma & Neon DB Integration** — database terkoneksi, schema deployed, seed berjalan
 - ✅ **Better Auth Implementation** — login/logout/session via Better Auth + custom bcryptjs verifier
 - ✅ **Hybrid-Bridge System** — `route.ts` catch-all + `AuthContext.tsx` cookie bridge beroperasi
+- ✅ **Documents / Watsa'iq Module v2** — Form dinamis berdasarkan residency type, integrasi bandara IATA & date range picker tiket pulang, buka-tutup ticket window, workflow surat keterangan softcopy (upload admin & download mahasiswa), validasi visa exit/re-entry berbasis kedaluwarsa Iqomah, otomatisasi sinkronisasi data paspor baru ke profil mahasiswa, pencegahan spam duplikasi request, A4 printable dossier, modal print settings editor & live preview, serta proteksi keamanan IDOR server-side dan client-side.
 
 ### 🔲 Berikutnya (NEXT / PENDING)
 - 🔲 **Migrasi Endpoint API Data** — secara bertahap memindahkan handler JSON demo ke Prisma queries langsung (target: satu endpoint per iterasi)
@@ -732,4 +811,4 @@ model FormResponse       { id, form_id, user_id, user_name, answers (Json), subm
 
 ---
 
-*Terakhir diperbarui: 2026-11-12 oleh AI Architect (audit codebase + integrasi constraint migrasi)*
+*Terakhir diperbarui: 2026-11-15 oleh Senior Next.js Developer (pengembangan fitur Dokumen v2, Print Settings Live Preview, dan Penguatan Keamanan IDOR)*

@@ -2,6 +2,8 @@
 
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { z } from "zod";
+import { useForm, Controller } from "react-hook-form";
 import { api, formatApiError } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { Card } from "@/components/ui/card";
@@ -27,6 +29,7 @@ import { FileThumb } from "@/components/FilePreview";
 
 export type ResidenceStatus = "INSIDE_SAKAN" | "OUTSIDE_SAKAN";
 export type AcademicStatus = "ACTIVE" | "ON_LEAVE";
+export type ResidencyType = "IQOMAH" | "STUDENT_VISA";
 export type SortField =
   | "name"
   | "universityId"
@@ -34,7 +37,7 @@ export type SortField =
   | "academicStatus"
   | "residenceStatus"
   | "program"
-  | "iqomah_expiry";
+  | "residency_expiry";
 export type SortOrder = "asc" | "desc";
 
 export interface Student {
@@ -54,14 +57,18 @@ export interface Student {
   nationality: string;
   passport_number: string;
   passport_expiry: string;
-  iqomah_number: string;
-  iqomah_expiry: string;
+  /** renamed from iqomah_number */
+  residency_number: string;
+  /** renamed from iqomah_expiry */
+  residency_expiry: string;
+  residency_type?: ResidencyType;
   phone: string;
   building?: string;
   program?: string;
   academic_year?: string;
   passport_file_id: string | null;
-  iqomah_file_id: string | null;
+  /** renamed from iqomah_file_id */
+  residency_file_id: string | null;
 }
 
 export interface StudyProgram {
@@ -71,17 +78,119 @@ export interface StudyProgram {
   created_at?: string;
 }
 
-type StudentForm = Omit<Student, "id"> & {
-  email: string;
-  password?: string;
-};
+// ─── Zod Schema & Form Types ──────────────────────────────────────────────────
 
-const EMPTY: StudentForm = {
+export const studentFormSchema = z.object({
+  email: z.string().optional(),
+  password: z.string().optional(),
+  arabicName: z.string().min(1, "الاسم بالعربي مطلوب / Arabic name is required"),
+  englishName: z.string().min(1, "الاسم بالإنجليزية مطلوب / English name is required"),
+  universityId: z.union([z.string(), z.number()]).transform((val) => String(val)).refine((v) => v.trim().length > 0, "الرقم الجامعي مطلوب / University ID is required"),
+  arrivalDate: z.string().optional().nullable(),
+  programStudy: z.string().min(1, "البرنامج الأكاديمي مطلوب / Academic program is required"),
+  academicYear: z.string().min(1, "السنة الدراسية مطلوبة / Academic year is required"),
+  residenceStatus: z.enum(["INSIDE_SAKAN", "OUTSIDE_SAKAN"]).default("INSIDE_SAKAN"),
+  room_number: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  academicStatus: z.enum(["ACTIVE", "ON_LEAVE"]).default("ACTIVE"),
+  adminNotes: z.string().optional().nullable(),
+  nationality: z.string().min(1, "الجنسية مطلوبة / Nationality is required"),
+  passport_number: z.string().min(1, "رقم الجواز مطلوب / Passport number is required"),
+  passport_expiry: z.string().min(1, "تاريخ انتهاء الجواز مطلوب / Passport expiry is required"),
+  residency_number: z
+    .string()
+    .min(10, "Nomor identitas minimal 10 digit")
+    .regex(/^[234]\d{9}$/, "Nomor identitas harus 10 digit dan diawali dengan angka 2, 3, atau 4"),
+  residency_expiry: z.string().min(1, "تاريخ انتهاء الهوية مطلوب / Identity expiry is required"),
+  residency_type: z.enum(["IQOMAH", "STUDENT_VISA"]).default("IQOMAH"),
+  phone: z.string().min(1, "رقم الهاتف مطلوب / Phone is required"),
+  passport_file_id: z.string().nullable().optional(),
+  residency_file_id: z.string().nullable().optional(),
+});
+
+export type StudentFormData = z.infer<typeof studentFormSchema>;
+
+/** Detect ResidencyType from first digit of residency_number */
+export function detectResidencyType(num?: string): ResidencyType | null {
+  if (!num) return null;
+  if (num.startsWith("2")) return "IQOMAH";
+  if (num.startsWith("3") || num.startsWith("4")) return "STUDENT_VISA";
+  return null;
+}
+
+/** Badge component for residency type inline indicator */
+function ResidencyTypeBadge({ number }: { number?: string }) {
+  if (!number) return null;
+  if (number.startsWith("2")) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-blue-400 bg-blue-50 text-blue-700 font-medium text-xs mt-1 inline-flex items-center gap-1"
+        data-testid="badge-iqomah"
+      >
+        Hawiyyah Muqim (Iqomah)
+      </Badge>
+    );
+  }
+  if (number.startsWith("3") || number.startsWith("4")) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-400 bg-emerald-50 text-emerald-700 font-medium text-xs mt-1 inline-flex items-center gap-1"
+        data-testid="badge-student-visa"
+      >
+        Visa Ta'limiyyah (Zair)
+      </Badge>
+    );
+  }
+  return null;
+}
+
+const customZodResolver =
+  (schema: z.ZodType<any>, isEditing: boolean) =>
+  async (data: StudentFormData) => {
+    const result = schema.safeParse(data);
+    const errors: Record<string, any> = {};
+
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as string;
+        if (!errors[field]) {
+          errors[field] = { type: issue.code, message: issue.message };
+        }
+      }
+    }
+
+    if (!isEditing) {
+      if (!data.email || !data.email.trim()) {
+        errors.email = { type: "required", message: "Email is required" };
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        errors.email = { type: "invalid", message: "Invalid email format" };
+      }
+      if (!data.password || !data.password.trim()) {
+        errors.password = { type: "required", message: "Password is required" };
+      }
+    }
+
+    if (data.residenceStatus === "INSIDE_SAKAN" && (!data.room_number || !data.room_number.trim())) {
+      errors.room_number = { type: "required", message: "Room number is required" };
+    }
+    if (data.residenceStatus === "OUTSIDE_SAKAN" && (!data.address || !data.address.trim())) {
+      errors.address = { type: "required", message: "Address is required" };
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return { values: {}, errors };
+    }
+
+    return { values: result.data || data, errors: {} };
+  };
+
+const EMPTY_FORM: StudentFormData = {
   email: "",
   password: "",
   arabicName: "",
   englishName: "",
-  full_name: "",
   universityId: "",
   arrivalDate: "",
   programStudy: "",
@@ -94,11 +203,12 @@ const EMPTY: StudentForm = {
   nationality: "",
   passport_number: "",
   passport_expiry: "",
-  iqomah_number: "",
-  iqomah_expiry: "",
+  residency_number: "",
+  residency_expiry: "",
+  residency_type: "IQOMAH",
   phone: "",
   passport_file_id: null,
-  iqomah_file_id: null,
+  residency_file_id: null,
 };
 
 export default function Students() {
@@ -110,9 +220,38 @@ export default function Students() {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<StudentForm>(EMPTY);
   const [editing, setEditing] = useState<Student | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // React Hook Form for Add / Edit Student
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<StudentFormData>({
+    resolver: customZodResolver(studentFormSchema, Boolean(editing)),
+    defaultValues: EMPTY_FORM,
+  });
+
+  const watchedResidencyNumber = watch("residency_number");
+  const watchedResidenceStatus = watch("residenceStatus");
+
+  // Real-time auto-detect residency_type based on first digit of residency_number
+  useEffect(() => {
+    if (!watchedResidencyNumber) return;
+    if (watchedResidencyNumber.startsWith("2")) {
+      setValue("residency_type", "IQOMAH", { shouldValidate: false });
+    } else if (
+      watchedResidencyNumber.startsWith("3") ||
+      watchedResidencyNumber.startsWith("4")
+    ) {
+      setValue("residency_type", "STUDENT_VISA", { shouldValidate: false });
+    }
+  }, [watchedResidencyNumber, setValue]);
 
   // Quick residence status change modal
   const [residenceModalOpen, setResidenceModalOpen] = useState(false);
@@ -215,8 +354,8 @@ export default function Students() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({
-      ...EMPTY,
+    reset({
+      ...EMPTY_FORM,
       programStudy: programs[0]?.name_ar || "",
     });
     setOpen(true);
@@ -230,13 +369,19 @@ export default function Students() {
     );
     const resolvedProgram = matched ? matched.name_ar : rawProg;
 
-    setForm({
+    const resNumber = r.residency_number || (r as any).iqomah_number || "";
+    const resType =
+      r.residency_type ||
+      (resNumber.startsWith("3") || resNumber.startsWith("4")
+        ? "STUDENT_VISA"
+        : "IQOMAH");
+
+    reset({
       email: "",
       password: "",
       arabicName: r.arabicName || r.full_name || "",
       englishName: r.englishName || r.full_name || "",
-      full_name: r.full_name || r.englishName || r.arabicName || "",
-      universityId: r.universityId || "",
+      universityId: String(r.universityId || ""),
       arrivalDate: r.arrivalDate ? String(r.arrivalDate).split("T")[0] : "",
       programStudy: resolvedProgram,
       academicYear: r.academicYear || r.academic_year || "2026/2027",
@@ -248,24 +393,44 @@ export default function Students() {
       nationality: r.nationality || "",
       passport_number: r.passport_number || "",
       passport_expiry: r.passport_expiry ? String(r.passport_expiry).split("T")[0] : "",
-      iqomah_number: r.iqomah_number || "",
-      iqomah_expiry: r.iqomah_expiry ? String(r.iqomah_expiry).split("T")[0] : "",
+      residency_number: resNumber,
+      residency_expiry: r.residency_expiry
+        ? String(r.residency_expiry).split("T")[0]
+        : (r as any).iqomah_expiry
+        ? String((r as any).iqomah_expiry).split("T")[0]
+        : "",
+      residency_type: resType,
       phone: r.phone || "",
       passport_file_id: r.passport_file_id || null,
-      iqomah_file_id: r.iqomah_file_id || null,
+      residency_file_id: r.residency_file_id || (r as any).iqomah_file_id || null,
     });
     setOpen(true);
   };
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onFormSubmit = async (data: StudentFormData) => {
     setSaving(true);
     try {
+      // Auto-infer residency_type secara otomatis sebelum submit berdasarkan residency_number
+      let inferredType: "IQOMAH" | "STUDENT_VISA" = "IQOMAH";
+      if (data.residency_number.startsWith("2")) {
+        inferredType = "IQOMAH";
+      } else if (
+        data.residency_number.startsWith("3") ||
+        data.residency_number.startsWith("4")
+      ) {
+        inferredType = "STUDENT_VISA";
+      }
+
       const payload = {
-        ...form,
-        full_name: form.englishName || form.arabicName || form.full_name,
-        program: form.programStudy,
-        academic_year: form.academicYear,
+        ...data,
+        residency_type: inferredType,
+        full_name: data.englishName || data.arabicName,
+        program: data.programStudy,
+        academic_year: data.academicYear,
+        // sync backward compatibility
+        iqomah_number: data.residency_number,
+        iqomah_expiry: data.residency_expiry,
+        iqomah_file_id: data.residency_file_id,
       };
 
       if (editing) {
@@ -360,10 +525,10 @@ export default function Students() {
     const nat = r.nationality || "";
     const room = r.room_number || "";
     const addr = r.address || "";
-    const iqamah = r.iqomah_number || "";
+    const residency = r.residency_number || "";
     const pass = r.passport_number || "";
     return (
-      (arabic + " " + english + " " + full + " " + univId + " " + nat + " " + room + " " + addr + " " + iqamah + " " + pass)
+      (arabic + " " + english + " " + full + " " + univId + " " + nat + " " + room + " " + addr + " " + residency + " " + pass)
         .toLowerCase()
         .includes(searchLower)
     );
@@ -376,8 +541,8 @@ export default function Students() {
     inside_sakan: bySearch.filter((r) => (r.residenceStatus || "INSIDE_SAKAN") === "INSIDE_SAKAN").length,
     outside_sakan: bySearch.filter((r) => r.residenceStatus === "OUTSIDE_SAKAN").length,
     missing_passport: bySearch.filter((r) => !r.passport_file_id).length,
-    missing_iqomah: bySearch.filter((r) => !r.iqomah_file_id).length,
-    missing_any: bySearch.filter((r) => !r.passport_file_id || !r.iqomah_file_id).length,
+    missing_iqomah: bySearch.filter((r) => !r.residency_file_id).length,
+    missing_any: bySearch.filter((r) => !r.passport_file_id || !r.residency_file_id).length,
   };
 
   const filtered = bySearch.filter((r) => {
@@ -386,8 +551,8 @@ export default function Students() {
     if (tab === "inside_sakan") return (r.residenceStatus || "INSIDE_SAKAN") === "INSIDE_SAKAN";
     if (tab === "outside_sakan") return r.residenceStatus === "OUTSIDE_SAKAN";
     if (tab === "missing_passport") return !r.passport_file_id;
-    if (tab === "missing_iqomah") return !r.iqomah_file_id;
-    if (tab === "missing_any") return !r.passport_file_id || !r.iqomah_file_id;
+    if (tab === "missing_iqomah") return !r.residency_file_id;
+    if (tab === "missing_any") return !r.passport_file_id || !r.residency_file_id;
     return true;
   });
 
@@ -429,9 +594,9 @@ export default function Students() {
         valA = getProgramDisplay(a.programStudy || a.program);
         valB = getProgramDisplay(b.programStudy || b.program);
         break;
-      case "iqomah_expiry":
-        valA = a.iqomah_expiry || "";
-        valB = b.iqomah_expiry || "";
+      case "residency_expiry":
+        valA = a.residency_expiry || "";
+        valB = b.residency_expiry || "";
         break;
     }
 
@@ -479,256 +644,412 @@ export default function Students() {
               <DialogHeader>
                 <DialogTitle>{editing ? t("edit") : t("add_student")}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2 pt-2" data-testid="student-form">
+              <form onSubmit={handleSubmit(onFormSubmit)} className="grid gap-4 sm:grid-cols-2 pt-2" data-testid="student-form">
+                <input type="hidden" {...register("residency_type")} />
+
                 {!editing && (
                   <>
-                  <Field
-                    label={t("email")}
-                    required
-                    value={form.email}
-                    onChange={(v) => setForm({ ...form, email: v })}
-                    type="email"
-                  />
-                  <Field
-                    label={t("password")}
-                    required
-                    value={form.password || ""}
-                    onChange={(v) => setForm({ ...form, password: v })}
-                    type="password"
-                  />
-                </>
-              )}
-
-              {/* Arabic Name & English Name */}
-              <Field
-                label={lang === "ar" ? "الاسم بالعربي" : t("arabic_name")}
-                required
-                value={form.arabicName || ""}
-                onChange={(v) => setForm({ ...form, arabicName: v })}
-              />
-              <Field
-                label={lang === "ar" ? "الاسم بالإنجليزية" : t("english_name")}
-                required
-                value={form.englishName || ""}
-                onChange={(v) => setForm({ ...form, englishName: v })}
-              />
-
-              {/* University ID & Arrival Date */}
-              <Field
-                label={lang === "ar" ? "الرقم الجامعي" : t("university_id")}
-                required
-                value={String(form.universityId || "")}
-                onChange={(v) => setForm({ ...form, universityId: v })}
-              />
-              <Field
-                label={lang === "ar" ? "تاريخ الوصول" : t("arrival_date")}
-                type="date"
-                value={form.arrivalDate || ""}
-                onChange={(v) => setForm({ ...form, arrivalDate: v })}
-              />
-
-              {/* Academic Status Select */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">{lang === "ar" ? "الحالة الأكاديمية" : t("academic_status")}</Label>
-                <Select
-                  value={form.academicStatus || "ACTIVE"}
-                  onValueChange={(v) => setForm({ ...form, academicStatus: v as AcademicStatus })}
-                >
-                  <SelectTrigger data-testid="academic-status-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">
-                      {lang === "ar" ? "منتظم (Active)" : t("status_active")}
-                    </SelectItem>
-                    <SelectItem value="ON_LEAVE">
-                      {lang === "ar" ? "مجاز / مؤجل (On Leave)" : t("status_on_leave")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Residence Status Select */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">{lang === "ar" ? "حالة السكن" : t("residence_status")}</Label>
-                <Select
-                  value={form.residenceStatus || "INSIDE_SAKAN"}
-                  onValueChange={(v) => setForm({ ...form, residenceStatus: v as ResidenceStatus })}
-                >
-                  <SelectTrigger data-testid="residence-status-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INSIDE_SAKAN">
-                      {lang === "ar" ? "داخل السكن (Inside Dorm)" : t("inside_sakan")}
-                    </SelectItem>
-                    <SelectItem value="OUTSIDE_SAKAN">
-                      {lang === "ar" ? "خارج السكن (Outside Dorm)" : t("outside_sakan")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Conditional: Room Number vs Address */}
-              {form.residenceStatus === "INSIDE_SAKAN" ? (
-                <Field
-                  label={lang === "ar" ? "رقم الغرفة" : t("room_number")}
-                  required
-                  value={form.room_number || ""}
-                  onChange={(v) => setForm({ ...form, room_number: v })}
-                />
-              ) : (
-                <Field
-                  label={lang === "ar" ? "عنوان السكن" : t("residence_address")}
-                  required
-                  value={form.address || ""}
-                  onChange={(v) => setForm({ ...form, address: v })}
-                />
-              )}
-
-              {/* Nationality */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t("nationality")}</Label>
-                <Select
-                  value={form.nationality || ""}
-                  onValueChange={(v) => setForm({ ...form, nationality: v })}
-                >
-                  <SelectTrigger data-testid="nationality-select">
-                    <SelectValue placeholder="—">
-                      {form.nationality ? getCountryLabel(form.nationality, lang) : null}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {COUNTRIES.map((c) => (
-                      <SelectItem key={c.en} value={c.en}>
-                        {lang === "ar" ? c.ar : c.en}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Academic Program & Year */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  {lang === "ar" ? "البرنامج الأكاديمي" : t("program")}{" "}
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={form.programStudy || ""}
-                  onValueChange={(v) => setForm({ ...form, programStudy: v })}
-                >
-                  <SelectTrigger className="w-full text-xs bg-white" data-testid="program-select">
-                    <SelectValue placeholder={t("select_program")}>
-                      {form.programStudy ? getProgramDisplay(form.programStudy) : null}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {programs.map((p) => {
-                      const primary = lang === "ar" ? p.name_ar : p.name_en;
-                      const secondary = lang === "ar" ? p.name_en : p.name_ar;
-                      return (
-                        <SelectItem key={p.id} value={p.name_ar}>
-                          <span>{primary}</span>
-                          {secondary && (
-                            <span className="text-muted-foreground text-[11px] ms-1.5 opacity-70">
-                              ({secondary})
-                            </span>
-                          )}
-                        </SelectItem>
-                      );
-                    })}
-                    {form.programStudy &&
-                      !programs.some((p) => p.name_ar === form.programStudy) && (
-                        <SelectItem value={form.programStudy}>
-                          {form.programStudy}
-                        </SelectItem>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">
+                        {t("email")} <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="email"
+                        {...register("email")}
+                        className={errors.email ? "border-destructive" : ""}
+                        data-testid="student-email"
+                      />
+                      {errors.email && (
+                        <p className="text-[11px] text-destructive">{errors.email.message}</p>
                       )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Field
-                label={lang === "ar" ? "السنة الدراسية" : t("academic_year")}
-                required
-                value={form.academicYear || ""}
-                onChange={(v) => setForm({ ...form, academicYear: v })}
-              />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">
+                        {t("password")} <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="password"
+                        {...register("password")}
+                        className={errors.password ? "border-destructive" : ""}
+                        data-testid="student-password"
+                      />
+                      {errors.password && (
+                        <p className="text-[11px] text-destructive">{errors.password.message}</p>
+                      )}
+                    </div>
+                  </>
+                )}
 
-              {/* Phone & ID Details */}
-              <Field
-                label={t("phone")}
-                required
-                value={form.phone}
-                onChange={(v) => setForm({ ...form, phone: v })}
-              />
-              <Field
-                label={t("passport")}
-                required
-                value={form.passport_number}
-                onChange={(v) => setForm({ ...form, passport_number: v })}
-              />
-              <Field
-                label={t("passport_expiry")}
-                type="date"
-                required
-                value={form.passport_expiry}
-                onChange={(v) => setForm({ ...form, passport_expiry: v })}
-              />
-              <Field
-                label={t("iqomah_number")}
-                required
-                value={form.iqomah_number}
-                onChange={(v) => setForm({ ...form, iqomah_number: v })}
-              />
-              <Field
-                label={t("iqomah_expiry")}
-                type="date"
-                required
-                value={form.iqomah_expiry}
-                onChange={(v) => setForm({ ...form, iqomah_expiry: v })}
-              />
+                {/* Arabic Name & English Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {lang === "ar" ? "الاسم بالعربي" : t("arabic_name")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("arabicName")}
+                    className={errors.arabicName ? "border-destructive" : ""}
+                    data-testid="student-arabic-name"
+                  />
+                  {errors.arabicName && (
+                    <p className="text-[11px] text-destructive">{errors.arabicName.message}</p>
+                  )}
+                </div>
 
-              {/* Admin Notes */}
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label className="text-xs">{lang === "ar" ? "ملاحظات الإدارة" : t("admin_notes")}</Label>
-                <Input
-                  value={form.adminNotes || ""}
-                  onChange={(e) => setForm({ ...form, adminNotes: e.target.value })}
-                  placeholder={lang === "ar" ? "ملاحظات إدارية خاصة بالطالب…" : "Admin notes..."}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {lang === "ar" ? "الاسم بالإنجليزية" : t("english_name")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("englishName")}
+                    className={errors.englishName ? "border-destructive" : ""}
+                    data-testid="student-english-name"
+                  />
+                  {errors.englishName && (
+                    <p className="text-[11px] text-destructive">{errors.englishName.message}</p>
+                  )}
+                </div>
+
+                {/* University ID & Arrival Date */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {lang === "ar" ? "الرقم الجامعي" : t("university_id")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("universityId")}
+                    className={errors.universityId ? "border-destructive" : ""}
+                    data-testid="student-university-id"
+                  />
+                  {errors.universityId && (
+                    <p className="text-[11px] text-destructive">{errors.universityId.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {lang === "ar" ? "تاريخ الوصول" : t("arrival_date")}
+                  </Label>
+                  <Input
+                    type="date"
+                    {...register("arrivalDate")}
+                    data-testid="student-arrival-date"
+                  />
+                </div>
+
+                {/* Academic Status Select */}
+                <Controller
+                  control={control}
+                  name="academicStatus"
+                  render={({ field }) => (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{lang === "ar" ? "الحالة الأكاديمية" : t("academic_status")}</Label>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="academic-status-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">
+                            {lang === "ar" ? "منتظم (Active)" : t("status_active")}
+                          </SelectItem>
+                          <SelectItem value="ON_LEAVE">
+                            {lang === "ar" ? "مجاز / مؤجل (On Leave)" : t("status_on_leave")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 />
-              </div>
 
-              {/* Document Scans */}
-              <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2 pt-2 border-t border-slate-100">
+                {/* Residence Status Select */}
+                <Controller
+                  control={control}
+                  name="residenceStatus"
+                  render={({ field }) => (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{lang === "ar" ? "حالة السكن" : t("residence_status")}</Label>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="residence-status-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="INSIDE_SAKAN">
+                            {lang === "ar" ? "داخل السكن (Inside Dorm)" : t("inside_sakan")}
+                          </SelectItem>
+                          <SelectItem value="OUTSIDE_SAKAN">
+                            {lang === "ar" ? "خارج السكن (Outside Dorm)" : t("outside_sakan")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                />
+
+                {/* Conditional: Room Number vs Address */}
+                {watchedResidenceStatus === "INSIDE_SAKAN" ? (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      {lang === "ar" ? "رقم الغرفة" : t("room_number")} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      {...register("room_number")}
+                      className={errors.room_number ? "border-destructive" : ""}
+                      data-testid="student-room-number"
+                    />
+                    {errors.room_number && (
+                      <p className="text-[11px] text-destructive">{errors.room_number.message}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      {lang === "ar" ? "عنوان السكن" : t("residence_address")} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      {...register("address")}
+                      className={errors.address ? "border-destructive" : ""}
+                      data-testid="student-address"
+                    />
+                    {errors.address && (
+                      <p className="text-[11px] text-destructive">{errors.address.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Nationality */}
+                <Controller
+                  control={control}
+                  name="nationality"
+                  render={({ field }) => (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">
+                        {t("nationality")} <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={field.value || ""} onValueChange={field.onChange}>
+                        <SelectTrigger data-testid="nationality-select" className={errors.nationality ? "border-destructive" : ""}>
+                          <SelectValue placeholder="—">
+                            {field.value ? getCountryLabel(field.value, lang) : null}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {COUNTRIES.map((c) => (
+                            <SelectItem key={c.en} value={c.en}>
+                              {lang === "ar" ? c.ar : c.en}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.nationality && (
+                        <p className="text-[11px] text-destructive">{errors.nationality.message}</p>
+                      )}
+                    </div>
+                  )}
+                />
+
+                {/* Academic Program & Year */}
+                <Controller
+                  control={control}
+                  name="programStudy"
+                  render={({ field }) => (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">
+                        {lang === "ar" ? "البرنامج الأكاديمي" : t("program")}{" "}
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={field.value || ""} onValueChange={field.onChange}>
+                        <SelectTrigger className="w-full text-xs bg-white" data-testid="program-select">
+                          <SelectValue placeholder={t("select_program")}>
+                            {field.value ? getProgramDisplay(field.value) : null}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {programs.map((p) => {
+                            const primary = lang === "ar" ? p.name_ar : p.name_en;
+                            const secondary = lang === "ar" ? p.name_en : p.name_ar;
+                            return (
+                              <SelectItem key={p.id} value={p.name_ar}>
+                                <span>{primary}</span>
+                                {secondary && (
+                                  <span className="text-muted-foreground text-[11px] ms-1.5 opacity-70">
+                                    ({secondary})
+                                  </span>
+                                )}
+                              </SelectItem>
+                            );
+                          })}
+                          {field.value && !programs.some((p) => p.name_ar === field.value) && (
+                            <SelectItem value={field.value}>{field.value}</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {errors.programStudy && (
+                        <p className="text-[11px] text-destructive">{errors.programStudy.message}</p>
+                      )}
+                    </div>
+                  )}
+                />
+
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{t("passport_file")}</Label>
-                  <FileUpload
-                    kind="passport"
-                    value={form.passport_file_id}
-                    onChange={(id: string | null) => setForm({ ...form, passport_file_id: id })}
-                    label={t("upload")}
+                  <Label className="text-xs">
+                    {lang === "ar" ? "السنة الدراسية" : t("academic_year")}{" "}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("academicYear")}
+                    className={errors.academicYear ? "border-destructive" : ""}
+                    data-testid="student-academic-year"
+                  />
+                  {errors.academicYear && (
+                    <p className="text-[11px] text-destructive">{errors.academicYear.message}</p>
+                  )}
+                </div>
+
+                {/* Phone & ID Details */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {t("phone")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("phone")}
+                    className={errors.phone ? "border-destructive" : ""}
+                    data-testid="student-phone"
+                  />
+                  {errors.phone && (
+                    <p className="text-[11px] text-destructive">{errors.phone.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {t("passport")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register("passport_number")}
+                    className={errors.passport_number ? "border-destructive" : ""}
+                    data-testid="student-passport-number"
+                  />
+                  {errors.passport_number && (
+                    <p className="text-[11px] text-destructive">{errors.passport_number.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {t("passport_expiry")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    {...register("passport_expiry")}
+                    className={errors.passport_expiry ? "border-destructive" : ""}
+                    data-testid="student-passport-expiry"
+                  />
+                  {errors.passport_expiry && (
+                    <p className="text-[11px] text-destructive">{errors.passport_expiry.message}</p>
+                  )}
+                </div>
+
+                {/* Identity Number with Auto-Detection & Real-time Badge */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">
+                      {lang === "ar" ? "رقم الهوية (إقامة / زائر)" : "Nomor Identitas (Iqomah / Zair)"}
+                      <span className="text-destructive ms-0.5">*</span>
+                    </Label>
+                  </div>
+                  <Input
+                    {...register("residency_number", {
+                      onChange: (e) => {
+                        const val = e.target.value;
+                        if (val.startsWith("2")) {
+                          setValue("residency_type", "IQOMAH");
+                        } else if (val.startsWith("3") || val.startsWith("4")) {
+                          setValue("residency_type", "STUDENT_VISA");
+                        }
+                      },
+                    })}
+                    placeholder="Contoh: 2553322559 atau 4344396017"
+                    inputMode="numeric"
+                    className={errors.residency_number ? "border-destructive" : ""}
+                    data-testid="residency-number-input"
+                  />
+                  <ResidencyTypeBadge number={watchedResidencyNumber} />
+                  {errors.residency_number && (
+                    <p className="text-[11px] text-destructive mt-1">
+                      {errors.residency_number.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    {lang === "ar" ? "انتهاء صلاحية الهوية" : "Identity Expiry Date"}{" "}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    {...register("residency_expiry")}
+                    className={errors.residency_expiry ? "border-destructive" : ""}
+                    data-testid="student-residency-expiry"
+                  />
+                  {errors.residency_expiry && (
+                    <p className="text-[11px] text-destructive">{errors.residency_expiry.message}</p>
+                  )}
+                </div>
+
+                {/* Admin Notes */}
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">{lang === "ar" ? "ملاحظات الإدارة" : t("admin_notes")}</Label>
+                  <Input
+                    {...register("adminNotes")}
+                    placeholder={lang === "ar" ? "ملاحظات إدارية خاصة بالطالب…" : "Admin notes..."}
+                    data-testid="student-admin-notes"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">{t("iqomah_file")}</Label>
-                  <FileUpload
-                    kind="iqomah"
-                    value={form.iqomah_file_id}
-                    onChange={(id: string | null) => setForm({ ...form, iqomah_file_id: id })}
-                    label={t("upload")}
+
+                {/* Document Scans */}
+                <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2 pt-2 border-t border-slate-100">
+                  <Controller
+                    control={control}
+                    name="passport_file_id"
+                    render={({ field }) => (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">{t("passport_file")}</Label>
+                        <FileUpload
+                          kind="passport"
+                          value={field.value ?? null}
+                          onChange={field.onChange}
+                          label={t("upload")}
+                        />
+                      </div>
+                    )}
+                  />
+
+                  <Controller
+                    control={control}
+                    name="residency_file_id"
+                    render={({ field }) => (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">
+                          {lang === "ar" ? "صورة الهوية (إقامة / زائر)" : "Identity Document Scan"}
+                        </Label>
+                        <FileUpload
+                          kind="iqomah"
+                          value={field.value ?? null}
+                          onChange={field.onChange}
+                          label={t("upload")}
+                        />
+                      </div>
+                    )}
                   />
                 </div>
-              </div>
 
-              <DialogFooter className="sm:col-span-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  {t("cancel")}
-                </Button>
-                <Button type="submit" disabled={saving} data-testid="student-submit">
-                  {saving ? "…" : t("save")}
-                </Button>
-              </DialogFooter>
-            </form>
+                <DialogFooter className="sm:col-span-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    {t("cancel")}
+                  </Button>
+                  <Button type="submit" disabled={saving} data-testid="student-submit">
+                    {saving ? "…" : t("save")}
+                  </Button>
+                </DialogFooter>
+              </form>
           </DialogContent>
         </Dialog>
         </div>
@@ -812,8 +1133,8 @@ export default function Students() {
                 <SelectItem value="academicStatus-asc">{lang === "ar" ? "الحالة الأكاديمية" : t("sort_status")}</SelectItem>
                 <SelectItem value="residenceStatus-asc">{lang === "ar" ? "حالة السكن" : t("sort_residence")}</SelectItem>
                 <SelectItem value="program-asc">{lang === "ar" ? "البرنامج الأكاديمي" : t("program")}</SelectItem>
-                <SelectItem value="iqomah_expiry-asc">{lang === "ar" ? "انتهاء الإقامة (الأقرب)" : t("sort_iqomah_asc")}</SelectItem>
-                <SelectItem value="iqomah_expiry-desc">{lang === "ar" ? "انتهاء الإقامة (الأبعد)" : t("sort_iqomah_desc")}</SelectItem>
+                <SelectItem value="residency_expiry-asc">{lang === "ar" ? "انتهاء الهوية (الأقرب)" : t("sort_iqomah_asc")}</SelectItem>
+                <SelectItem value="residency_expiry-desc">{lang === "ar" ? "انتهاء الهوية (الأبعد)" : t("sort_iqomah_desc")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -862,8 +1183,8 @@ export default function Students() {
                   onSort={toggleSort}
                 />
                 <SortHeader
-                  label={t("iqomah_number")}
-                  field="iqomah_expiry"
+                  label={lang === "ar" ? "رقم الهوية" : "Identity No."}
+                  field="residency_expiry"
                   current={sortField}
                   order={sortOrder}
                   onSort={toggleSort}
@@ -996,13 +1317,18 @@ export default function Students() {
                       </div>
                     </td>
 
-                    {/* Iqamah */}
+                    {/* Identity / Residency */}
                     <td className="px-4 py-3 tabular-nums">
                       <div className="text-xs">
-                        <div>{r.iqomah_number}</div>
+                        <div>{r.residency_number}</div>
                         <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-100 text-[10px] mt-0.5">
-                          {r.iqomah_expiry}
+                          {r.residency_expiry}
                         </Badge>
+                        {r.residency_type && r.residency_type === "STUDENT_VISA" ? (
+                          <span className="block text-[10px] text-emerald-600 font-medium mt-0.5">فيزا تعليمية</span>
+                        ) : (
+                          <span className="block text-[10px] text-blue-600 font-medium mt-0.5">إقامة</span>
+                        )}
                       </div>
                     </td>
 
@@ -1016,14 +1342,14 @@ export default function Students() {
                             testid={`passport-${r.id}`}
                           />
                         )}
-                        {r.iqomah_file_id && (
+                        {r.residency_file_id && (
                           <FileThumb
-                            fileId={r.iqomah_file_id}
-                            label={t("iqomah_number")}
-                            testid={`iqomah-${r.id}`}
+                            fileId={r.residency_file_id}
+                            label={lang === "ar" ? "الهوية" : "Identity"}
+                            testid={`residency-${r.id}`}
                           />
                         )}
-                        {!r.passport_file_id && !r.iqomah_file_id && (
+                        {!r.passport_file_id && !r.residency_file_id && (
                           <span className="text-[10px] text-muted-foreground">—</span>
                         )}
                       </div>

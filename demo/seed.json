@@ -51,10 +51,14 @@
       "phone": "0500000000",
       "passport_number": "DEMO-PASSPORT",
       "passport_expiry": "2027-11-10",
-      "iqomah_number": "DEMO-IQOMAH",
+      "residency_number": "2553322559",
+      "residency_expiry": "2026-11-30",
+      "residency_type": "IQOMAH",
+      "iqomah_number": "2553322559",
       "iqomah_expiry": "2026-11-30",
       "passport_file_id": null,
       "iqomah_file_id": null,
+      "residency_file_id": null,
       "created_at": "2026-11-10T11:47:29.259Z"
     }
   ],
@@ -92,14 +96,31 @@
       "user_name": "Demo Student",
       "created_at": "2026-11-10T11:47:29.259Z",
       "updated_at": null,
-      "status": "pending",
+      "status": "PENDING",
       "id": "permission-demo",
-      "permission_type": "outing",
-      "destination": "Hail city centre",
-      "start_date": "2026-11-11",
-      "end_date": "2026-11-11",
-      "reason": "Purchase study supplies",
+      "permission_type": "OUT_OF_TOWN",
+      "destination": "Riyadh",
+      "transportation_mode": "train",
+      "start_date": "2026-11-20",
+      "end_date": "2026-11-25",
+      "reason": "Attend Academic Conference",
       "admin_note": ""
+    },
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-01T11:47:29.259Z",
+      "updated_at": "2026-11-02T10:00:00.000Z",
+      "status": "ACTIVE",
+      "id": "permission-overstay-demo",
+      "permission_type": "OVERNIGHT",
+      "destination": "Friend's Residence, Hail",
+      "overnight_address": "King Fahd Road, Apt 4B, Hail",
+      "emergency_contact": "+966 55 123 4567",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-08",
+      "reason": "Weekend group study and project preparation",
+      "admin_note": "Approved by warden"
     }
   ],
   "announcements": [
@@ -147,6 +168,16 @@
   ],
   "responses": [],
   "files": [],
+  "geofence_settings": {
+    "enabled": true,
+    "name": "University of Hail Student Housing",
+    "latitude": 27.5450,
+    "longitude": 41.7100,
+    "radius_meters": 500
+  },
+  "permission_settings": {
+    "default_approval_note": "Permission approved. Wishing you a safe trip and a safe return, fee amani Allah."
+  },
   "profile_edit_settings": {
     "allowArabicName": false,
     "allowEnglishName": false,
@@ -242,5 +273,11 @@
       "name_en": "Doctor of Pharmacy",
       "created_at": "2026-11-10T11:47:29.259Z"
     }
-  ]
+  ],
+  "system_settings": {
+    "id": "global",
+    "is_ticket_window_open": true,
+    "print_letterhead_url": null,
+    "print_footer_text": "وثيقة رسمية صادرة من عمادة شؤون الطلاب - جامعة حائل. أي كشط أو تعديل يلغي هذه الاستمارة."
+  }
 }

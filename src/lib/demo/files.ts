@@ -30,8 +30,33 @@ export async function files(db: Store, user: User, id: string | undefined, actio
         }
     }
     const file = find(db.files.filter(file => !file.is_deleted), id, 'File');
-    if (user.role === 'student' && file.uploaded_by !== user.id)
-        fail(404, 'File not found');
+    if (user.role === 'student') {
+        const isOwner = file.uploaded_by === user.id;
+        const isAssociatedDoc = db.documents.some(d => d.user_id === user.id && (
+            d.result_file_id === file.id ||
+            (Array.isArray(d.attachment_file_ids) && d.attachment_file_ids.includes(file.id)) ||
+            (d.dynamic_data && (
+                d.dynamic_data.passport_file === file.id ||
+                d.dynamic_data.passport_file_id === file.id ||
+                d.dynamic_data.result_file_id === file.id
+            ))
+        ));
+        const isAssociatedStudent = db.students.some(s => s.user_id === user.id && (
+            s.passport_file_id === file.id ||
+            s.residency_file_id === file.id ||
+            (s as any).iqomah_file_id === file.id
+        ));
+        const isAssociatedPermission = db.permissions.some(p => p.user_id === user.id && p.ticket_attachment_id === file.id);
+        const isAssociatedComplaint = db.complaints.some(c => (c.student_id === user.id || c.user_id === user.id) && (
+            (Array.isArray(c.attachments) && c.attachments.includes(file.id)) ||
+            c.messages?.some(m => Array.isArray(m.attachments) && m.attachments.includes(file.id))
+        ));
+        const isPublicKind = ['letterhead', 'logo', 'announcement', 'system'].includes(file.kind);
+
+        if (!isOwner && !isAssociatedDoc && !isAssociatedStudent && !isAssociatedPermission && !isAssociatedComplaint && !isPublicKind) {
+            fail(404, 'File not found');
+        }
+    }
     if (request.method === 'GET' && action === 'download') {
         let bytes: Buffer;
         try {
@@ -40,7 +65,15 @@ export async function files(db: Store, user: User, id: string | undefined, actio
         catch {
             fail(404, 'File content not found');
         }
-        return new Response(new Uint8Array(bytes), { headers: { 'Content-Type': file.content_type, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(file.original_filename)}`, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, no-store' } });
+        const safeFilename = file.original_filename.replace(/["\r\n\\]/g, '_');
+        return new Response(new Uint8Array(bytes), {
+            headers: {
+                'Content-Type': file.content_type || 'application/octet-stream',
+                'Content-Disposition': `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(file.original_filename)}`,
+                'X-Content-Type-Options': 'nosniff',
+                'Cache-Control': 'private, no-store',
+            },
+        });
     }
     if (request.method === 'GET' && !action)
         return meta(file);

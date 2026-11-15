@@ -24,3 +24,4 @@ demo/uploads/
 .claude/
 .cursor/
 .devin/
+.DS_Store

@@ -33,6 +33,9 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
             const studentName = profile.arabicName || profile.englishName || profile.full_name || 'Student';
             const account: User = { ...base(), email: email.toLowerCase(), name: studentName, role: 'student' };
             assignProfileFiles(db, [profile.passport_file_id, profile.iqomah_file_id], user.id, account.id);
+            const resNumber = profile.residency_number || (profile as any).iqomah_number || '';
+            const resExpiry = profile.residency_expiry || (profile as any).iqomah_expiry || '';
+            const resType = (resNumber.startsWith('3') || resNumber.startsWith('4')) ? 'STUDENT_VISA' : 'IQOMAH';
             const student: Student = {
                 ...base(),
                 ...profile,
@@ -46,8 +49,14 @@ export function accounts(db: Store, user: User, resource: string, id: string | u
                 residenceStatus: profile.residenceStatus || 'INSIDE_SAKAN',
                 academicStatus: profile.academicStatus || 'ACTIVE',
                 user_id: account.id,
+                residency_number: resNumber,
+                residency_expiry: resExpiry,
+                residency_type: profile.residency_type || resType,
+                iqomah_number: resNumber,
+                iqomah_expiry: resExpiry,
                 passport_file_id: profile.passport_file_id ?? null,
-                iqomah_file_id: profile.iqomah_file_id ?? null,
+                iqomah_file_id: (profile as any).residency_file_id ?? profile.iqomah_file_id ?? null,
+                residency_file_id: (profile as any).residency_file_id ?? profile.iqomah_file_id ?? null,
                 photo_url: null
             };
             db.users.push(account);
