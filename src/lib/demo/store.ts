@@ -1,10 +1,10 @@
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import type { Store } from './models.ts';
-export function dataPath() { return resolve(process.env.DEMO_DATA_FILE || 'demo/data.json'); }
+export function dataPath() { return resolve(/*turbopackIgnore: true*/ process.env.DEMO_DATA_FILE || 'demo/data.json'); }
 export async function readStore(): Promise<Store> {
     try {
-        return JSON.parse(await readFile(dataPath(), 'utf8')) as Store;
+        return JSON.parse(await readFile(/*turbopackIgnore: true*/ dataPath(), 'utf8')) as Store;
     }
     catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
