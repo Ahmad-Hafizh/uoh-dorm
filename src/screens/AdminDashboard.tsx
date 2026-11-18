@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type LucideIcon, Users, MessageSquareWarning, FileCheck2, AlertTriangle, CalendarClock, CalendarCheck } from "lucide-react";
+import { type LucideIcon, Users, MessageSquareWarning, FileCheck2, AlertTriangle, CalendarClock, CalendarCheck, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,42 @@ import { getCountryLabel } from "@/constants/countries";
 
 const COLORS = ["#1D4ED8", "#0284C7", "#0891B2", "#4F46E5", "#7C3AED", "#059669", "#D97706"];
 
-interface DashboardData { total_students: number; complaints: { pending: number; in_progress: number; resolved: number }; documents: { pending: number; completed: number }; permissions_pending: number; iqomah_expiring: { id: string; full_name: string; nationality: string; iqomah_number: string; iqomah_expiry: string; days_left: number }[]; nationalities: { nationality: string; count: number }[]; recent_permissions_pending: { id: string; user_name: string; permission_type: string; destination: string; start_date: string; created_at: string }[] }
+interface DashboardData {
+  total_students: number;
+  complaints: { pending: number; in_progress: number; resolved: number };
+  documents: { pending: number; completed: number };
+  permissions_pending: number;
+  overstay_permissions?: {
+    id: string;
+    user_id: string;
+    user_name: string;
+    permission_type: string;
+    destination: string;
+    start_date: string;
+    end_date: string;
+    days_overdue: number;
+    room_number?: string | null;
+    phone?: string | null;
+    nationality?: string | null;
+  }[];
+  iqomah_expiring: {
+    id: string;
+    full_name: string;
+    nationality: string;
+    iqomah_number: string;
+    iqomah_expiry: string;
+    days_left: number;
+  }[];
+  nationalities: { nationality: string; count: number }[];
+  recent_permissions_pending: {
+    id: string;
+    user_name: string;
+    permission_type: string;
+    destination: string;
+    start_date: string;
+    created_at: string;
+  }[];
+}
 function StatCard({ icon: Icon, label, value, sub, tone = "primary" }: { icon: LucideIcon; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "primary" | "warning" | "success" | "info" }) {
   const bg = {
     primary: "bg-primary/10 text-primary",
@@ -75,6 +110,77 @@ export default function AdminDashboard() {
         <StatCard icon={AlertTriangle} label={t("iqomah_expiring")} value={data.iqomah_expiring.length} tone="info" />
         <StatCard icon={CalendarCheck} label={t("pending_permissions")} value={data.permissions_pending || 0} tone="warning" />
       </div>
+
+      {/* Smart Overstay Alert Table */}
+      {data.overstay_permissions && data.overstay_permissions.length > 0 && (
+        <Card className="p-6 border-rose-200 bg-rose-50/40" data-testid="overstay-alert-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="grid h-9 w-9 place-items-center rounded-lg bg-rose-100 text-rose-600">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-rose-950 flex items-center gap-2">
+                  {t("overstay_alert")}
+                  <Badge className="bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200 tabular-nums">
+                    {data.overstay_permissions.length}
+                  </Badge>
+                </h3>
+                <p className="text-xs text-rose-800/80 mt-0.5">
+                  {t("overstay_desc")}
+                </p>
+              </div>
+            </div>
+            <Link href="/permissions">
+              <Button variant="outline" size="sm" className="border-rose-300 text-rose-900 hover:bg-rose-100">
+                {t("review")}
+              </Button>
+            </Link>
+          </div>
+
+          <div className="overflow-hidden rounded-md border border-rose-200 bg-white shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-rose-100/70 text-rose-950">
+                <tr>
+                  <th className="text-start px-4 py-2.5 font-medium">{t("student")}</th>
+                  <th className="text-start px-4 py-2.5 font-medium">{t("permission_type")}</th>
+                  <th className="text-start px-4 py-2.5 font-medium">{t("destination")}</th>
+                  <th className="text-start px-4 py-2.5 font-medium">{t("end_date")}</th>
+                  <th className="text-start px-4 py-2.5 font-medium">{t("status")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.overstay_permissions.map((op) => (
+                  <tr key={op.id} className="border-t border-rose-100 hover:bg-rose-50/50" data-testid={`overstay-row-${op.id}`}>
+                    <td className="px-4 py-2.5 font-medium text-slate-900">
+                      {op.user_name}
+                      {op.room_number && (
+                        <span className="text-xs text-slate-500 ms-1.5 font-normal">
+                          ({t("room")} {op.room_number})
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {t(op.permission_type) || op.permission_type}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-600">
+                      {op.destination}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums text-rose-700 font-mono font-medium">
+                      {op.end_date}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Badge className="bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-100 text-xs">
+                        {t("overstay_badge")} (+{op.days_overdue} {t("days_left")?.replace("left", "").trim() || "d"})
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2 border-slate-200">

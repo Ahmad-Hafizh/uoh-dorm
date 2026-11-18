@@ -9,8 +9,6 @@ __pycache__/
 
 .next-demo/
 .next-production/
-demo/data.json
-demo/uploads/
 *.tsbuildinfo
 
 .next-verified/
@@ -18,3 +16,10 @@ demo/uploads/
 .next-dev/
 .next-build/
 .next-final/
+
+# AI Agents & IDE Cache
+.agents/
+.claude/
+.cursor/
+.devin/
+.DS_Store

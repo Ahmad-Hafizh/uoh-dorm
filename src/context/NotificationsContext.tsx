@@ -2,8 +2,19 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-interface Counts { forms_unread: number; announcements_unread: number; permissions_pending?: number; permissions_updates?: number }
-interface NotificationsValue { counts: Counts; refresh(): Promise<void>; markRead(resource: "announcements" | "permissions"): Promise<void> }
+interface Counts {
+  forms_unread: number;
+  announcements_unread: number;
+  permissions_pending?: number;
+  permissions_updates?: number;
+  documents_pending?: number;
+  documents_updates?: number;
+}
+interface NotificationsValue {
+  counts: Counts;
+  refresh(): Promise<void>;
+  markRead(resource: "announcements" | "permissions" | "documents"): Promise<void>;
+}
 const NotificationsContext = createContext<NotificationsValue | null>(null);
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -13,7 +24,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     try { const { data } = await api.get<Counts>("/notifications/counts"); setCounts(data); } catch { /* Keep previous counts. */ }
   }, [user]);
   useEffect(() => { void refresh(); }, [refresh]);
-  const markRead = useCallback(async (resource: "announcements" | "permissions") => {
+  const markRead = useCallback(async (resource: "announcements" | "permissions" | "documents") => {
     try { await api.post("/notifications/mark-read", { resource }); await refresh(); } catch { /* Keep previous counts. */ }
   }, [refresh]);
   const value = useMemo(() => ({ counts, refresh, markRead }), [counts, refresh, markRead]);

@@ -1,7 +1,8 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useSession } from "@/lib/auth-client";
+import type { SessionUser } from "@/lib/auth-client";
 import Layout from "@/components/Layout";
 import Login from "@/screens/Login";
 import AdminDashboard from "@/screens/AdminDashboard";
@@ -14,18 +15,62 @@ import Announcements from "@/screens/Announcements";
 import Permissions from "@/screens/Permissions";
 import Forms from "@/screens/Forms";
 import Profile from "@/screens/Profile";
-const screens = { students: Students, staff: Staff, complaints: Complaints, documents: Documents, announcements: Announcements, permissions: Permissions, forms: Forms, profile: Profile };
+
+const screens = {
+  students: Students,
+  staff: Staff,
+  complaints: Complaints,
+  documents: Documents,
+  announcements: Announcements,
+  permissions: Permissions,
+  forms: Forms,
+  profile: Profile,
+};
+
 type ScreenName = keyof typeof screens | "dashboard" | "login";
+
 export default function Screen({ name }: { name: ScreenName }) {
-  const { user } = useAuth();
+  const { data: session, isPending } = useSession();
+
+  // Cast to our extended type so `role` is known to TypeScript
+  const user = session?.user as SessionUser | undefined;
+  const role = user?.role;
+
   const router = useRouter();
-  const forbidden = user && ((name === "students" && !["admin", "staff"].includes(user.role)) || (name === "staff" && user.role !== "admin"));
+
+  const forbidden =
+    !!user &&
+    ((name === "students" && !["ADMIN", "STAFF"].includes(role ?? "")) ||
+      (name === "staff" && role !== "ADMIN"));
+
   useEffect(() => {
-    if (user === false && name !== "login") router.replace("/login");
+    if (isPending) return;
+    if (!user && name !== "login") router.replace("/login");
     else if (user && (name === "login" || forbidden)) router.replace("/");
-  }, [user, name, forbidden, router]);
-  if (user === null || (name !== "login" && !user) || (name === "login" && user) || forbidden) return <div className="min-h-screen grid place-items-center">Loading…</div>;
+  }, [user, isPending, name, forbidden, router]);
+
+  // Loading state while Better Auth resolves the session
+  if (isPending) {
+    return <div className="min-h-screen grid place-items-center">Loading…</div>;
+  }
+
+  // Transitioning — keep the loading UI while router.replace() fires
+  if ((!user && name !== "login") || (user && name === "login") || forbidden) {
+    return <div className="min-h-screen grid place-items-center">Loading…</div>;
+  }
+
   if (name === "login") return <Login />;
-  const Component = name === "dashboard" ? (user && user.role === "student" ? StudentDashboard : AdminDashboard) : screens[name];
-  return <Layout><Component /></Layout>;
+
+  const Component =
+    name === "dashboard"
+      ? role === "STUDENT"
+        ? StudentDashboard
+        : AdminDashboard
+      : screens[name];
+
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
 }

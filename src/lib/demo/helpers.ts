@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Store, User, Role, Question, Answers } from './models.ts';
+import type { Store, User, Role, Question, Answers, Announcement } from './models.ts';
 export class ApiError extends Error {
     status: number;
     constructor(status: number, message: string) { super(message); this.status = status; }
@@ -33,17 +33,59 @@ export function recount(db: Store) { for (const form of db.forms)
 export function days(date: string) { return Math.floor((Date.parse(date + 'T00:00:00Z') - Date.parse(now().slice(0, 10) + 'T00:00:00Z')) / 86400000); }
 export function csv(value: unknown) { let text = Array.isArray(value) ? value.join(', ') : String(value ?? ''); if (/^\s*[=+@-]/.test(text))
     text = "'" + text; return '"' + text.replaceAll('"', '""') + '"'; }
+export function isFormClosed(form: { closes_at?: string | null; is_active?: boolean }): boolean {
+    if (!form.is_active) return true;
+    if (form.closes_at) {
+        const deadline = new Date(form.closes_at).getTime();
+        if (!Number.isNaN(deadline) && deadline < Date.now())
+            return true;
+    }
+    return false;
+}
+export function enrichAnnouncement(item: Announcement, db: Store, user?: User): Announcement {
+    const category = item.category || 'GENERAL';
+    const attachment_file_ids = item.attachment_file_ids || [];
+    const acknowledged_by = Array.isArray(item.acknowledged_by) ? item.acknowledged_by : [];
+    const acknowledged_count = acknowledged_by.length;
+    const has_acknowledged = Boolean(user && acknowledged_by.includes(user.id));
+    let form_status = null;
+    if (item.form_id) {
+        const form = db.forms.find(f => f.id === item.form_id);
+        if (form) {
+            const closed = isFormClosed(form);
+            const hasResponded = user && db.responses ? db.responses.some(r => r.form_id === form.id && r.user_id === user.id) : false;
+            form_status = {
+                form_id: form.id,
+                title: form.title,
+                is_active: Boolean(form.is_active),
+                is_closed: Boolean(closed),
+                has_responded: Boolean(hasResponded),
+                closes_at: form.closes_at || null,
+                question_count: form.questions ? form.questions.length : 0,
+            };
+        }
+    }
+    return {
+        ...item,
+        category,
+        attachment_file_ids,
+        acknowledged_by,
+        acknowledged_count,
+        has_acknowledged,
+        form_status,
+    };
+}
 export function validateQuestions(questions: Question[]) { const ids = new Set<string>(); for (const question of questions) {
     if (ids.has(question.id))
         fail(422, 'Question IDs must be unique');
     ids.add(question.id);
-    if (['single_choice', 'multi_choice'].includes(question.type) && !question.options?.length)
+    if (['single_choice', 'multi_choice', 'dropdown'].includes(question.type) && !question.options?.length)
         fail(422, 'Choice questions need options');
 } }
 export function validateAnswers(questions: Question[], answers: Answers) { for (const question of questions) {
     const answer = answers[question.id], empty = answer == null || answer === '' || Array.isArray(answer) && !answer.length;
     if (empty) {
-        if (question.required)
+        if (question.is_required || question.required)
             fail(422, `Required: ${question.label}`);
         continue;
     }
@@ -54,7 +96,7 @@ export function validateAnswers(questions: Question[], answers: Answers) { for (
     else {
         if (Array.isArray(answer))
             fail(422, 'Invalid answer');
-        if (question.type === 'single_choice' && !question.options?.includes(String(answer)))
+        if (['single_choice', 'dropdown'].includes(question.type) && !question.options?.includes(String(answer)))
             fail(422, 'Invalid choice');
         if (question.type === 'number' && !Number.isFinite(Number(answer)))
             fail(422, 'Invalid number');
