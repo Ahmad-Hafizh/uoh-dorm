@@ -131,6 +131,8 @@
       "body_en": "All records are fictional. Try the admin, staff and student accounts.",
       "body_ar": "جميع البيانات تجريبية. يمكنك تجربة حسابات المسؤول والموظف والطالب.",
       "pinned": true,
+      "category": "GENERAL",
+      "attachment_file_ids": [],
       "author_name": "Demo Admin",
       "created_at": "2026-11-10T11:47:29.259Z"
     }

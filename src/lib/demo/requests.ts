@@ -1,6 +1,6 @@
 import type { Store, User, DocumentRequest, Permission } from './models.ts';
-import { documentCreate, documentUpdate, permissionCreate, permissionUpdate, announcementCreate, defaultGeofenceSettings, defaultPermissionSettings } from './models.ts';
-import { roles, find, fail, base, sorted, own, attachments, now } from './helpers.ts';
+import { documentCreate, documentUpdate, permissionCreate, permissionUpdate, announcementCreate, announcementUpdate, defaultGeofenceSettings, defaultPermissionSettings } from './models.ts';
+import { roles, find, fail, base, sorted, own, attachments, now, isFormClosed, enrichAnnouncement } from './helpers.ts';
 import { announcements } from './dashboard.ts';
 
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -166,14 +166,43 @@ export function autoStartApprovedPermissions(permissions: Permission[]): boolean
     return changed;
 }
 
-export function requests(db: Store, user: User, resource: string, id: string | undefined, method: string, input: unknown): unknown {
+export function requests(db: Store, user: User, resource: string, id: string | undefined, method: string, input: unknown, action?: string): unknown {
     if (resource === 'announcements') {
-        if (!id && method === 'GET')
-            return announcements(db);
+        if (id && action === 'acknowledge' && method === 'POST') {
+            const row = find(db.announcements, id, 'Announcement');
+            if (!row.acknowledged_by) row.acknowledged_by = [];
+            if (!row.acknowledged_by.includes(user.id)) {
+                row.acknowledged_by.push(user.id);
+            }
+            return {
+                ok: true,
+                id: row.id,
+                acknowledged_count: row.acknowledged_by.length,
+                has_acknowledged: true,
+            };
+        }
+        if (!id && method === 'GET') {
+            return announcements(db).map(item => enrichAnnouncement(item, db, user));
+        }
         roles(user, 'admin', 'staff');
         if (!id && method === 'POST') {
-            const row = { ...base(), ...announcementCreate.parse(input), author_name: user.name, form_id: null };
+            const parsed = announcementCreate.parse(input);
+            const row = {
+                ...base(),
+                ...parsed,
+                author_name: user.name,
+                category: parsed.category || 'GENERAL',
+                attachment_file_ids: parsed.attachment_file_ids || [],
+                acknowledged_by: parsed.acknowledged_by || [],
+                form_id: parsed.form_id || null,
+            };
             db.announcements.push(row);
+            return row;
+        }
+        if (id && method === 'PATCH') {
+            const row = find(db.announcements, id, 'Announcement');
+            const patch = announcementUpdate.parse(input);
+            Object.assign(row, patch);
             return row;
         }
         if (id && method === 'DELETE') {
@@ -416,6 +445,8 @@ export function requests(db: Store, user: User, resource: string, id: string | u
                             title_ar: "تم اكتمال تجديد الإقامة - يرجى تحديث الملف الشخصي",
                             body_en: `The Iqomah renewal request for ${studentName} has been completed by dormitory staff. Please update your new residency number and expiry date in your profile.`,
                             body_ar: `تم الانتهاء من تجديد الإقامة للطالب ${studentName} بنجاح. يرجى التوجه إلى صفحة الملف الشخصي لتحديث رقم الإقامة الجديد.`,
+                            category: "IMMIGRATION",
+                            attachment_file_ids: [],
                             author_name: user.name,
                             pinned: true,
                             form_id: null,

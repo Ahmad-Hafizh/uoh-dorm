@@ -80,6 +80,14 @@ enum PermissionStatus {
   CANCELLED
 }
 
+enum AnnouncementCategory {
+  GENERAL
+  URGENT
+  TRANSPORT
+  IMMIGRATION
+  EVENT
+}
+
 //------------------------------------------------------------
 //  BETTER AUTH CORE MODELS (UPDATED)
 //------------------------------------------------------------
@@ -303,15 +311,18 @@ model FileRecord {
 }
 
 model Announcement {
-  id          String   @id @default(uuid())
-  title_en    String   @map("title_en")
-  title_ar    String   @map("title_ar")
-  body_en     String   @map("body_en")
-  body_ar     String   @map("body_ar")
-  pinned      Boolean? @default(false)
-  author_name String   @map("author_name")
-  form_id     String?  @map("form_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                  String               @id @default(uuid())
+  title_en            String               @map("title_en")
+  title_ar            String               @map("title_ar")
+  body_en             String               @map("body_en")
+  body_ar             String               @map("body_ar")
+  category            AnnouncementCategory @default(GENERAL) @map("category")
+  attachment_file_ids Json?                @map("attachment_file_ids")
+  acknowledged_by     Json?                @map("acknowledged_by")
+  pinned              Boolean?             @default(false)
+  author_name         String               @map("author_name")
+  form_id             String?              @map("form_id")
+  createdAt           DateTime             @default(now()) @map("created_at")
 
   @@map("announcements")
 }

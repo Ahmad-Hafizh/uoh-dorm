@@ -239,12 +239,59 @@ export type Permission = Owned & {
     status: string;
     admin_note: string;
 };
-export const announcementCreate = z.object({ title_en: text, title_ar: text, body_en: text, body_ar: text, pinned: z.boolean().default(false) });
-export type Announcement = z.infer<typeof announcementCreate> & {
+export const announcementCategoryEnum = z.enum(['GENERAL', 'URGENT', 'TRANSPORT', 'IMMIGRATION', 'EVENT']);
+export type AnnouncementCategory = z.infer<typeof announcementCategoryEnum>;
+
+export const announcementCreate = z.object({
+    title_en: text,
+    title_ar: text,
+    body_en: text,
+    body_ar: text,
+    category: announcementCategoryEnum.default('GENERAL'),
+    attachment_file_ids: z.array(z.string()).nullable().optional().default([]),
+    acknowledged_by: z.array(z.string()).optional().default([]),
+    pinned: z.boolean().default(false),
+    form_id: z.string().nullable().optional(),
+});
+
+export const announcementUpdate = z.object({
+    title_en: text.optional(),
+    title_ar: text.optional(),
+    body_en: text.optional(),
+    body_ar: text.optional(),
+    category: announcementCategoryEnum.optional(),
+    attachment_file_ids: z.array(z.string()).nullable().optional(),
+    acknowledged_by: z.array(z.string()).optional(),
+    pinned: z.boolean().optional(),
+    form_id: z.string().nullable().optional(),
+});
+
+export interface AnnouncementFormStatus {
+    form_id: string;
+    title?: string;
+    is_active: boolean;
+    is_closed: boolean;
+    has_responded: boolean;
+    closes_at?: string | null;
+    question_count?: number;
+}
+
+export type Announcement = {
     id: string;
+    title_en: string;
+    title_ar: string;
+    body_en: string;
+    body_ar: string;
+    category: AnnouncementCategory | string;
+    attachment_file_ids?: string[] | null;
+    acknowledged_by?: string[];
+    acknowledged_count?: number;
+    has_acknowledged?: boolean;
+    pinned: boolean;
     author_name: string;
     created_at: string;
     form_id?: string | null;
+    form_status?: AnnouncementFormStatus | null;
 };
 export const questionSchema = z.object({
     id: text,

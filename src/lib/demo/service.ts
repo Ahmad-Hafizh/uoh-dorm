@@ -201,7 +201,7 @@ async function dispatch(request: Request, db: Store): Promise<Response> {
     else if (resource === 'complaints')
         result = complaints(db, user, id, action, method, input, request.url);
     else if (['documents', 'permissions', 'announcements'].includes(resource))
-        result = requests(db, user, resource, id, method, input);
+        result = requests(db, user, resource, id, method, input, action);
     else if (resource === 'forms')
         result = await forms(db, user, id, action, extra, method, input);
     else if (resource === 'files')

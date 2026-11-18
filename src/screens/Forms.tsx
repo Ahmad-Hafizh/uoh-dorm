@@ -137,6 +137,26 @@ export default function Forms() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || rows.length === 0) return;
+    const formId = new URLSearchParams(window.location.search).get("formId");
+    if (!formId) return;
+    const target = rows.find((f) => f.id === formId);
+    if (target) {
+      if (isStaff) {
+        setOpenResponses(target);
+      } else {
+        const isClosed = Boolean(
+          target.is_closed ||
+            (target.closes_at && new Date(target.closes_at).getTime() < Date.now())
+        );
+        if (!isClosed) {
+          setOpenFill(target);
+        }
+      }
+    }
+  }, [rows, isStaff]);
+
   const openNew = () => {
     setEditing(null);
     setOpenBuilder(true);

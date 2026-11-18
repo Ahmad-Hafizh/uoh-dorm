@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Store, User, Role, Question, Answers } from './models.ts';
+import type { Store, User, Role, Question, Answers, Announcement } from './models.ts';
 export class ApiError extends Error {
     status: number;
     constructor(status: number, message: string) { super(message); this.status = status; }
@@ -41,6 +41,39 @@ export function isFormClosed(form: { closes_at?: string | null; is_active?: bool
             return true;
     }
     return false;
+}
+export function enrichAnnouncement(item: Announcement, db: Store, user?: User): Announcement {
+    const category = item.category || 'GENERAL';
+    const attachment_file_ids = item.attachment_file_ids || [];
+    const acknowledged_by = Array.isArray(item.acknowledged_by) ? item.acknowledged_by : [];
+    const acknowledged_count = acknowledged_by.length;
+    const has_acknowledged = Boolean(user && acknowledged_by.includes(user.id));
+    let form_status = null;
+    if (item.form_id) {
+        const form = db.forms.find(f => f.id === item.form_id);
+        if (form) {
+            const closed = isFormClosed(form);
+            const hasResponded = user && db.responses ? db.responses.some(r => r.form_id === form.id && r.user_id === user.id) : false;
+            form_status = {
+                form_id: form.id,
+                title: form.title,
+                is_active: Boolean(form.is_active),
+                is_closed: Boolean(closed),
+                has_responded: Boolean(hasResponded),
+                closes_at: form.closes_at || null,
+                question_count: form.questions ? form.questions.length : 0,
+            };
+        }
+    }
+    return {
+        ...item,
+        category,
+        attachment_file_ids,
+        acknowledged_by,
+        acknowledged_count,
+        has_acknowledged,
+        form_status,
+    };
 }
 export function validateQuestions(questions: Question[]) { const ids = new Set<string>(); for (const question of questions) {
     if (ids.has(question.id))

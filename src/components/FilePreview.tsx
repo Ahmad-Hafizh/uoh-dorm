@@ -128,3 +128,117 @@ export function FileViewButton({ fileId, children, className = "", testid }: { f
     </>
   );
 }
+
+export function FilePreview({
+  fileId,
+  className = "",
+}: {
+  fileId: string;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  const [meta, setMeta] = useState<FileMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get(`/files/${fileId}`)
+      .then((r) => {
+        if (!cancelled) setMeta(r.data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileId]);
+
+  if (loading) {
+    return (
+      <div
+        className={`flex items-center gap-2 p-2.5 rounded-lg border border-slate-200 bg-slate-50/70 animate-pulse text-xs text-muted-foreground ${className}`}
+      >
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <span>...</span>
+      </div>
+    );
+  }
+
+  if (!meta) return null;
+
+  const isImage = meta.content_type?.startsWith("image/");
+  const isPdf = meta.content_type === "application/pdf";
+  const url = fileDownloadUrl(fileId);
+
+  if (isImage) {
+    return (
+      <FileViewButton
+        fileId={fileId}
+        className={`block text-left transition hover:opacity-95 ${className}`}
+        testid={`file-preview-${fileId}`}
+      >
+        <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50 shadow-xs hover:border-primary/40 transition">
+          <img
+            src={url}
+            alt={meta.original_filename}
+            className="max-h-64 sm:max-h-72 w-auto max-w-full rounded-lg object-contain bg-slate-900/5 group-hover:scale-[1.01] transition-transform duration-200"
+            loading="lazy"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-2.5 text-white flex items-center justify-between gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
+            <span className="text-xs font-medium truncate max-w-[80%]">
+              {meta.original_filename}
+            </span>
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded backdrop-blur-xs shrink-0">
+              {Math.max(1, Math.round(meta.size / 1024))} KB
+            </span>
+          </div>
+        </div>
+      </FileViewButton>
+    );
+  }
+
+  return (
+    <div
+      className={`flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50/90 hover:bg-slate-100/90 hover:border-primary/40 transition shadow-xs ${className}`}
+      data-testid={`file-preview-${fileId}`}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-red-100 text-red-600">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-slate-800 truncate">
+            {meta.original_filename}
+          </p>
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {isPdf ? "PDF Document" : meta.content_type} · {Math.max(1, Math.round(meta.size / 1024))} KB
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ms-auto">
+        <FileViewButton fileId={fileId}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+            <FileText className="h-3.5 w-3.5" />
+            <span>{t("view")}</span>
+          </Button>
+        </FileViewButton>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          download={meta.original_filename}
+        >
+          <Button variant="secondary" size="sm" className="h-8 gap-1.5 text-xs">
+            <Download className="h-3.5 w-3.5" />
+            <span>PDF</span>
+          </Button>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+export default FilePreview;

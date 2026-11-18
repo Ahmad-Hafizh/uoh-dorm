@@ -80,7 +80,18 @@ export async function forms(db: Store, user: User, id: string | undefined, actio
         const form: FormRecord = { ...base(), ...data, created_by: user.id, author_name: user.name, response_count: 0 };
         db.forms.push(form);
         if (form.is_active)
-            db.announcements.push({ ...base(), title_en: `New form: ${form.title}`, title_ar: `نموذج جديد: ${form.title}`, body_en: 'Please complete the new form.', body_ar: 'يرجى تعبئة النموذج الجديد.', pinned: false, author_name: user.name, form_id: form.id });
+            db.announcements.push({
+                ...base(),
+                title_en: `New form: ${form.title}`,
+                title_ar: `نموذج جديد: ${form.title}`,
+                body_en: 'Please complete the new form.',
+                body_ar: 'يرجى تعبئة النموذج الجديد.',
+                category: 'GENERAL',
+                attachment_file_ids: [],
+                pinned: false,
+                author_name: user.name,
+                form_id: form.id,
+            });
         return form;
     }
     const form = find(db.forms, id, 'Form');

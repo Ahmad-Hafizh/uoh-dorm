@@ -1,8 +1,15 @@
 import type { Store, User } from './models.ts';
-import { roles, fail, days, sorted, own, now } from './helpers.ts';
+import { roles, fail, days, sorted, own, now, enrichAnnouncement } from './helpers.ts';
 import { autoStartApprovedPermissions } from './requests.ts';
 
-export const announcements = (db: Store) => sorted(db.announcements).sort((a, b) => Number(b.pinned) - Number(a.pinned));
+export const announcements = (db: Store) =>
+    sorted(db.announcements).sort((a, b) => {
+        const aUrgent = (a.category || '').toUpperCase() === 'URGENT' ? 1 : 0;
+        const bUrgent = (b.category || '').toUpperCase() === 'URGENT' ? 1 : 0;
+        if (bUrgent !== aUrgent) return bUrgent - aUrgent;
+        if (Number(b.pinned) !== Number(a.pinned)) return Number(b.pinned) - Number(a.pinned);
+        return 0;
+    });
 
 /*
 // ============================================================================
@@ -116,8 +123,24 @@ export function dashboard(db: Store, user: User, kind: string | undefined) {
         status: string;
     }[]) => rows.filter(row => ['pending', 'in_progress'].includes(row.status)).length;
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const document_updates = sorted(
-        documents.filter(row => row.updated_at != null)
+        documents.filter(row => {
+            const s = (row.status || '').toLowerCase();
+            // 1. Never show cancelled in dashboard
+            if (s === 'cancelled') return false;
+            // 2. Active running requests
+            if (['pending', 'in_progress'].includes(s)) return true;
+            // 3. Unread updates
+            const isUnread = (row.updated_at ?? '') > (user.documents_last_read_at ?? '');
+            if (isUnread) return true;
+            // 4. Completed with result file within last 7 days
+            if (s === 'completed' && row.result_file_id) {
+                const dateToCheck = row.updated_at || row.created_at;
+                if (dateToCheck >= sevenDaysAgo) return true;
+            }
+            return false;
+        })
     ).slice(0, 10).map(doc => ({
         id: doc.id,
         request_type: doc.request_type,
@@ -146,6 +169,8 @@ export function dashboard(db: Store, user: User, kind: string | undefined) {
                 return s === 'PENDING' || s === 'APPROVED' || s === 'ACTIVE';
             })
         ).slice(0, 20),
-        recent_announcements: announcements(db).slice(0, 5)
+        recent_announcements: announcements(db)
+            .slice(0, 3)
+            .map(a => enrichAnnouncement(a, db, user))
     };
 }
