@@ -1,0 +1,829 @@
+{
+  "users": [
+    {
+      "id": "admin",
+      "name": "Demo Admin",
+      "email": "admin@uoh.edu.sa",
+      "role": "admin",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "1970-01-01",
+      "permissions_last_read_at": "1970-01-01"
+    },
+    {
+      "id": "staff",
+      "name": "Demo Staff",
+      "email": "staff@uoh.edu.sa",
+      "role": "staff",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "1970-01-01",
+      "permissions_last_read_at": "1970-01-01"
+    },
+    {
+      "id": "student",
+      "name": "طالب تجريبي",
+      "email": "student@uoh.edu.sa",
+      "role": "student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "announcements_last_read_at": "2026-11-15T12:49:28.822Z",
+      "permissions_last_read_at": "2026-11-15T14:29:54.646Z",
+      "documents_last_read_at": "2026-11-16T17:36:23.520Z"
+    },
+    {
+      "id": "9300e97c-3b28-43c4-9958-6ac1868b1399",
+      "created_at": "2026-11-15T06:28:29.028Z",
+      "email": "student1@uoh.edu.sa",
+      "name": "فلان",
+      "role": "student",
+      "documents_last_read_at": "2026-11-15T06:42:28.598Z",
+      "permissions_last_read_at": "2026-11-15T06:42:31.102Z",
+      "announcements_last_read_at": "2026-11-15T06:42:33.599Z"
+    }
+  ],
+  "students": [
+    {
+      "id": "profile",
+      "user_id": "student",
+      "full_name": "Demo Student",
+      "arabicName": "طالب تجريبي",
+      "englishName": "Demo Student",
+      "universityId": "202412131",
+      "arrivalDate": "2024-09-01",
+      "programStudy": "علوم الحاسب والمعلومات",
+      "academicYear": "2026/2027",
+      "residenceStatus": "INSIDE_SAKAN",
+      "address": "",
+      "academicStatus": "ACTIVE",
+      "adminNotes": "سجل أكاديمي وسكني منتظم",
+      "nationality": "Indonesia",
+      "building": "A",
+      "room_number": "10",
+      "program": "علوم الحاسب والمعلومات",
+      "academic_year": "2026/2027",
+      "phone": "0500000000",
+      "passport_number": "A123123",
+      "passport_expiry": "2027-11-10",
+      "residency_number": "2553322559",
+      "residency_expiry": "2026-11-30",
+      "residency_type": "IQOMAH",
+      "iqomah_number": "2553322559",
+      "iqomah_expiry": "2026-11-30",
+      "passport_file_id": "08fbb293-147c-4937-b2a0-a78a27169065",
+      "iqomah_file_id": "be1ef790-e8b7-436a-b824-af4464e6442d",
+      "residency_file_id": "be1ef790-e8b7-436a-b824-af4464e6442d",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "55d72fb2-ddfa-4896-a0fb-a51a64bb58db",
+      "created_at": "2026-11-15T06:28:29.028Z",
+      "full_name": "Fulan",
+      "arabicName": "فلان",
+      "englishName": "Fulan",
+      "universityId": "202612131",
+      "arrivalDate": "2026-01-07",
+      "programStudy": "الهندسة الميكانيكية",
+      "academicYear": "2026/2027",
+      "residenceStatus": "INSIDE_SAKAN",
+      "address": "",
+      "academicStatus": "ACTIVE",
+      "adminNotes": "",
+      "nationality": "Thailand",
+      "passport_number": "A12312A",
+      "passport_expiry": "2030-01-01",
+      "residency_number": "4222121212",
+      "residency_expiry": "2027-01-07",
+      "residency_type": "STUDENT_VISA",
+      "iqomah_number": "4222121212",
+      "iqomah_expiry": "2027-01-07",
+      "phone": "05612312312",
+      "room_number": "301",
+      "program": "الهندسة الميكانيكية",
+      "academic_year": "2026/2027",
+      "passport_file_id": null,
+      "iqomah_file_id": null,
+      "residency_file_id": null,
+      "building": "",
+      "user_id": "9300e97c-3b28-43c4-9958-6ac1868b1399",
+      "photo_url": null
+    }
+  ],
+  "complaints": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": null,
+      "status": "PENDING",
+      "id": "complaint-demo",
+      "category": "facility",
+      "title": "Desk lamp needs repair",
+      "description": "The desk lamp in room A-101 is not working.",
+      "admin_response": "",
+      "ticket_number": "CMP-202611-001",
+      "priority": "MEDIUM",
+      "category_id": "cat-other",
+      "category_name": "facility",
+      "student_id": "student",
+      "student_name": "Demo Student"
+    },
+    {
+      "id": "cmp-1794419430859",
+      "ticket_number": "CMP-202611-002",
+      "title": "Water leak in 3rd floor kitchen",
+      "description": "The pipe under the main sink is dripping rapidly and flooding the floor.",
+      "location_details": "Kitchen Room 304, 3rd Floor East Wing",
+      "attachments": [
+        "file-photo-1"
+      ],
+      "status": "RESOLVED",
+      "priority": "URGENT",
+      "category_id": "cat-1794419430855",
+      "category_name": "التكييف والتهوية (HVAC Special)",
+      "student_id": "student",
+      "student_name": "طالب تجريبي",
+      "student_email": "student@uoh.edu.sa",
+      "assigned_to_id": "staff",
+      "assigned_to_name": "Demo Staff",
+      "created_at": "2026-11-11T17:50:30.859Z",
+      "updated_at": "2026-11-11T17:50:30.870Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "category": "التكييف والتهوية (HVAC Special)",
+      "admin_response": ""
+    }
+  ],
+  "documents": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": "2026-11-15T06:06:21.178Z",
+      "status": "cancelled",
+      "id": "document-demo",
+      "request_type": "iqomah_renewal",
+      "notes": "Example renewal request",
+      "attachment_file_ids": [],
+      "admin_note": ""
+    },
+    {
+      "id": "acd6e0b3-5fd1-4f67-9042-8e320d35affd",
+      "created_at": "2026-11-14T09:56:49.077Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": null,
+      "request_type": "return_ticket",
+      "notes": "",
+      "attachment_file_ids": [],
+      "dynamic_data": {
+        "origin": "Hail (HAS)",
+        "destination": "CGK - Jakarta, Indonesia",
+        "trip_type": "round_trip",
+        "departure_date": "2026-11-14",
+        "return_date": "2026-11-18"
+      },
+      "status": "pending",
+      "admin_note": ""
+    },
+    {
+      "id": "a0615630-7003-428a-85e7-6cff2323150d",
+      "created_at": "2026-11-14T09:57:08.912Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-14T14:27:58.959Z",
+      "request_type": "return_ticket",
+      "notes": "",
+      "attachment_file_ids": [],
+      "dynamic_data": {
+        "origin": "Hail (HAS)",
+        "destination": "CGK - Jakarta, Indonesia",
+        "trip_type": "round_trip",
+        "departure_date": "2026-11-14",
+        "return_date": "2026-11-17"
+      },
+      "status": "cancelled",
+      "admin_note": ""
+    },
+    {
+      "id": "03ac1e71-391f-47d4-ac9d-d18c50ad9f21",
+      "created_at": "2026-11-14T11:14:19.381Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-14T11:14:40.234Z",
+      "request_type": "exit_reentry_visa",
+      "notes": "",
+      "attachment_file_ids": [],
+      "dynamic_data": {
+        "visa_validity_type": "duration_days",
+        "return_to_ksa_before": null,
+        "duration_days": 60,
+        "resident_id_expiry": "2026-11-30"
+      },
+      "status": "cancelled",
+      "admin_note": ""
+    },
+    {
+      "id": "049a11f8-8be0-4da3-b415-6f166c98989c",
+      "created_at": "2026-11-14T15:10:38.070Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-14T15:12:34.301Z",
+      "request_type": "letter_of_enrollment",
+      "notes": "",
+      "attachment_file_ids": [],
+      "dynamic_data": {
+        "addressed_to": "Bank",
+        "addressed_to_other": null,
+        "letter_language": "ar",
+        "delivery_method": "softcopy"
+      },
+      "status": "completed",
+      "admin_note": "",
+      "result_file_id": "cf98ff20-aa4e-4f21-aa2d-4350af10ea94"
+    },
+    {
+      "id": "b20d32f5-96cd-4c40-b504-76f346761513",
+      "created_at": "2026-11-15T06:06:21.159Z",
+      "user_id": "01759126-c5c6-47f4-ad65-cb3be08608ae",
+      "user_name": "فلان",
+      "updated_at": "2026-11-15T13:00:03.523Z",
+      "request_type": "letter_of_enrollment",
+      "notes": "Security test doc for Student B",
+      "attachment_file_ids": [],
+      "dynamic_data": {
+        "addressed_to": "Embassy",
+        "letter_language": "en",
+        "delivery_method": "hardcopy"
+      },
+      "status": "completed",
+      "admin_note": "",
+      "result_file_id": null
+    }
+  ],
+  "permissions": [
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "updated_at": "2026-11-14T06:40:46.458Z",
+      "status": "REJECTED",
+      "id": "permission-demo",
+      "permission_type": "OUT_OF_TOWN",
+      "destination": "Riyadh",
+      "transportation_mode": "train",
+      "start_date": "2026-11-20",
+      "end_date": "2026-11-25",
+      "reason": "Attend Academic Conference",
+      "admin_note": ""
+    },
+    {
+      "user_id": "student",
+      "user_name": "Demo Student",
+      "created_at": "2026-11-01T11:47:29.259Z",
+      "updated_at": "2026-11-14T04:37:09.393Z",
+      "status": "COMPLETED",
+      "id": "permission-overstay-demo",
+      "permission_type": "OVERNIGHT",
+      "destination": "Friend's Residence, Hail",
+      "overnight_address": "King Fahd Road, Apt 4B, Hail",
+      "emergency_contact": "+966 55 123 4567",
+      "start_date": "2026-11-05",
+      "end_date": "2026-11-08",
+      "reason": "Weekend group study and project preparation",
+      "admin_note": "Approved by warden"
+    },
+    {
+      "id": "d3e4ccab-f644-495b-be48-70fb52de9d1f",
+      "created_at": "2026-11-14T06:57:54.214Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-15T12:56:28.720Z",
+      "permission_type": "OUT_OF_TOWN",
+      "destination": "Makkah",
+      "transportation_mode": "bus",
+      "overnight_address": "",
+      "emergency_contact": "",
+      "ticket_attachment_id": null,
+      "start_date": "2026-11-14",
+      "end_date": "2026-11-17",
+      "reason": "Umrah",
+      "status": "COMPLETED",
+      "admin_note": "Permission approved. Wishing you a safe trip and a safe return, fee amani Allah."
+    },
+    {
+      "id": "2fe23f0a-8af8-48cb-929a-d1cddf450f80",
+      "created_at": "2026-11-14T07:51:44.566Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-14T07:53:37.919Z",
+      "permission_type": "OUT_OF_TOWN",
+      "destination": "jeddah",
+      "transportation_mode": "bus",
+      "overnight_address": "",
+      "emergency_contact": "",
+      "ticket_attachment_id": null,
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-25",
+      "reason": "family visit",
+      "status": "CANCELLED",
+      "admin_note": "Trip cancelled by student"
+    },
+    {
+      "id": "fed3c075-7e49-47c7-bb65-8a30e9069181",
+      "created_at": "2026-11-15T12:57:40.317Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": "2026-11-15T14:20:47.926Z",
+      "permission_type": "OVERNIGHT",
+      "destination": "",
+      "transportation_mode": "bus",
+      "overnight_address": "Ahmad's Apartment",
+      "emergency_contact": "",
+      "ticket_attachment_id": null,
+      "start_date": "2026-11-15",
+      "end_date": "2026-11-16",
+      "reason": "friend visit",
+      "status": "ACTIVE",
+      "admin_note": "تمت الموافقة على طلب الإذن، رافقتكم السلامة وعودًا حميدًا بحفظ الله ورعايته"
+    },
+    {
+      "id": "4c1f902e-5765-483b-8e06-f9b55e0fa2ac",
+      "created_at": "2026-11-15T14:20:39.299Z",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "updated_at": null,
+      "permission_type": "OUT_OF_TOWN",
+      "destination": "Makkah",
+      "transportation_mode": "bus",
+      "overnight_address": "",
+      "emergency_contact": "",
+      "ticket_attachment_id": null,
+      "start_date": "2026-11-17",
+      "end_date": "2026-11-23",
+      "reason": "umrah",
+      "status": "PENDING",
+      "admin_note": ""
+    }
+  ],
+  "announcements": [
+    {
+      "id": "announcement-urgent-demo",
+      "title_en": "Urgent Maintenance Notice: Water Supply Interruption",
+      "title_ar": "تنبيه عاجل: انقطاع مؤقت لخدمة المياه لأعمال الصيانة",
+      "body_en": "Please note that water service will be temporarily suspended tomorrow from 8:00 AM to 12:00 PM for scheduled plumbing maintenance across Building A and B. Please take necessary precautions and store adequate water.",
+      "body_ar": "يرجى العلم بأنه سيتم فصل خدمة المياه مؤقتاً يوم غد من الساعة 8:00 صباحاً وحتى 12:00 ظهراً لأعمال الصيانة الدورية في المبنيين أ و ب. نرجو أخذ الاحتياطات اللازمة وتخزين المياه الكافية.",
+      "category": "URGENT",
+      "attachment_file_ids": [],
+      "acknowledged_by": [
+        "student"
+      ],
+      "pinned": true,
+      "author_name": "Demo Admin",
+      "form_id": null,
+      "created_at": "2026-11-14T08:00:00.000Z"
+    },
+    {
+      "id": "announcement-demo",
+      "title_en": "Welcome to the dormitory demo",
+      "title_ar": "مرحبًا بكم في النسخة التجريبية للسكن",
+      "body_en": "All records are fictional. Try the admin, staff and student accounts.",
+      "body_ar": "جميع البيانات تجريبية. يمكنك تجربة حسابات المسؤول والموظف والطالب.",
+      "category": "GENERAL",
+      "attachment_file_ids": [],
+      "acknowledged_by": [],
+      "pinned": true,
+      "author_name": "Demo Admin",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "66ca38cc-9834-4dfe-aacf-78de1a558969",
+      "created_at": "2026-11-11T17:17:48.017Z",
+      "title_en": "New form: جدول حافلات نهاية الأسبوع (Weekly Bus Schedule)",
+      "title_ar": "نموذج جديد: جدول حافلات نهاية الأسبوع (Weekly Bus Schedule)",
+      "body_en": "Please complete the new form.",
+      "body_ar": "يرجى تعبئة النموذج الجديد.",
+      "category": "TRANSPORT",
+      "attachment_file_ids": [],
+      "acknowledged_by": [],
+      "pinned": false,
+      "author_name": "Demo Admin",
+      "form_id": "a0838bc0-466a-4860-a0a0-ce4755405638"
+    },
+    {
+      "id": "2d27927e-a15a-4fd5-badf-418d8cc3b56b",
+      "created_at": "2026-11-11T17:17:48.086Z",
+      "title_en": "New form: نموذج منتهي الصلاحية (Expired Form)",
+      "title_ar": "نموذج جديد: نموذج منتهي الصلاحية (Expired Form)",
+      "body_en": "Please complete the new form.",
+      "body_ar": "يرجى تعبئة النموذج الجديد.",
+      "category": "GENERAL",
+      "attachment_file_ids": [],
+      "acknowledged_by": [],
+      "pinned": false,
+      "author_name": "Demo Admin",
+      "form_id": "6c3a755a-533e-4286-87b3-c641c10b9b0c"
+    }
+  ],
+  "forms": [
+    {
+      "id": "form-demo",
+      "title": "Dormitory feedback",
+      "description": "Tell us how we can improve your stay.",
+      "is_active": true,
+      "questions": [
+        {
+          "id": "q1",
+          "label": "How is your room?",
+          "type": "single_choice",
+          "options": [
+            "Comfortable",
+            "Needs attention"
+          ],
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q2",
+          "label": "Additional feedback",
+          "type": "textarea",
+          "options": null,
+          "is_required": false,
+          "required": false
+        }
+      ],
+      "created_by": "admin",
+      "author_name": "Demo Admin",
+      "response_count": 1,
+      "created_at": "2026-11-10T11:47:29.259Z",
+      "closes_at": null
+    },
+    {
+      "id": "a0838bc0-466a-4860-a0a0-ce4755405638",
+      "created_at": "2026-11-11T17:17:48.017Z",
+      "title": "جدول حافلات نهاية الأسبوع (Weekly Bus Schedule)",
+      "description": "يرجى تحديد أوقات الرحلات والمحطات المطلوبة",
+      "closes_at": "2026-11-12T17:17:47.983Z",
+      "questions": [
+        {
+          "id": "q_name",
+          "label": "اسم الطالب (Student Name)",
+          "type": "text",
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_destination",
+          "label": "وجهة الحافلة (Bus Destination)",
+          "type": "dropdown",
+          "options": [
+            "سوق برزان (Barzan Market)",
+            "جراند مول (Grand Mall)",
+            "محطة القطار (Train Station)"
+          ],
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_pickup_time",
+          "label": "وقت الانطلاق (Pickup Time)",
+          "type": "time",
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_id_card",
+          "label": "صورة البطاقة الجامعية (ID Card Photo)",
+          "type": "file",
+          "is_required": false,
+          "required": false
+        }
+      ],
+      "is_active": true,
+      "created_by": "admin",
+      "author_name": "Demo Admin",
+      "response_count": 1
+    },
+    {
+      "id": "form-1794417468022",
+      "created_at": "2026-11-11T17:17:48.022Z",
+      "title": "جدول حافلات نهاية الأسبوع (Weekly Bus Schedule) (Copy)",
+      "description": "يرجى تحديد أوقات الرحلات والمحطات المطلوبة",
+      "closes_at": null,
+      "questions": [
+        {
+          "id": "q_1794417468022_8uiqy",
+          "label": "اسم الطالب (Student Name)",
+          "type": "text",
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_1794417468022_matcw",
+          "label": "وجهة الحافلة (Bus Destination)",
+          "type": "dropdown",
+          "options": [
+            "سوق برزان (Barzan Market)",
+            "جراند مول (Grand Mall)",
+            "محطة القطار (Train Station)"
+          ],
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_1794417468022_j74l5",
+          "label": "وقت الانطلاق (Pickup Time)",
+          "type": "time",
+          "is_required": true,
+          "required": true
+        },
+        {
+          "id": "q_1794417468022_nv4e9",
+          "label": "صورة البطاقة الجامعية (ID Card Photo)",
+          "type": "file",
+          "is_required": false,
+          "required": false
+        }
+      ],
+      "is_active": false,
+      "created_by": "admin",
+      "author_name": "Demo Admin",
+      "response_count": 0
+    },
+    {
+      "id": "6c3a755a-533e-4286-87b3-c641c10b9b0c",
+      "created_at": "2026-11-11T17:17:48.086Z",
+      "title": "نموذج منتهي الصلاحية (Expired Form)",
+      "description": "Closed form test",
+      "closes_at": "2026-11-11T16:17:48.085Z",
+      "questions": [
+        {
+          "id": "q_t1",
+          "label": "Question 1",
+          "type": "text",
+          "is_required": true,
+          "required": true
+        }
+      ],
+      "is_active": true,
+      "created_by": "admin",
+      "author_name": "Demo Admin",
+      "response_count": 0
+    }
+  ],
+  "responses": [
+    {
+      "id": "7997ce70-700e-4d66-91b8-c75cedcf9d82",
+      "form_id": "form-demo",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "submitted_at": "2026-11-11T08:05:12.807Z",
+      "updated_at": null,
+      "answers": {
+        "q1": "Comfortable"
+      }
+    },
+    {
+      "id": "fdc89464-cc45-4f58-8915-e390b7ebf986",
+      "form_id": "a0838bc0-466a-4860-a0a0-ce4755405638",
+      "user_id": "student",
+      "user_name": "طالب تجريبي",
+      "submitted_at": "2026-11-11T17:17:48.024Z",
+      "updated_at": null,
+      "answers": {
+        "q_name": "أحمد علي",
+        "q_destination": "جراند مول (Grand Mall)",
+        "q_pickup_time": "16:30",
+        "q_id_card": "file-12345"
+      }
+    }
+  ],
+  "files": [
+    {
+      "id": "08fbb293-147c-4937-b2a0-a78a27169065",
+      "created_at": "2026-11-11T07:21:57.486Z",
+      "original_filename": "262539.jpeg",
+      "content_type": "image/jpeg",
+      "size": 155781,
+      "kind": "passport",
+      "uploaded_by": "student",
+      "is_deleted": false,
+      "storage_path": "29d23544-8a95-425b-aa8d-8ac903c81223"
+    },
+    {
+      "id": "be1ef790-e8b7-436a-b824-af4464e6442d",
+      "created_at": "2026-11-11T07:22:13.451Z",
+      "original_filename": "logo.png",
+      "content_type": "image/jpeg",
+      "size": 62041,
+      "kind": "iqomah",
+      "uploaded_by": "student",
+      "is_deleted": false,
+      "storage_path": "2853de75-427d-4d39-abfa-edc06dd188a7"
+    },
+    {
+      "id": "cf98ff20-aa4e-4f21-aa2d-4350af10ea94",
+      "created_at": "2026-11-14T15:12:32.913Z",
+      "original_filename": "UoH Dormitory.pdf",
+      "content_type": "application/pdf",
+      "size": 952884,
+      "kind": "result-letter",
+      "uploaded_by": "staff",
+      "is_deleted": false,
+      "storage_path": "8db4b4ad-f043-44ae-be4c-d7617c60123b"
+    }
+  ],
+  "geofence_settings": {
+    "enabled": true,
+    "name": "University of Hail Student Housing",
+    "latitude": 27.477964,
+    "longitude": 41.658443,
+    "radius_meters": 500
+  },
+  "permission_settings": {
+    "default_approval_note": "تمت الموافقة على طلب الإذن، رافقتكم السلامة وعودًا حميدًا بحفظ الله ورعايته"
+  },
+  "profile_edit_settings": {
+    "allowArabicName": false,
+    "allowEnglishName": false,
+    "allowPhone": true,
+    "allowNationality": false,
+    "allowUniversityId": false,
+    "allowProgramStudy": false,
+    "academicYear": false,
+    "allowArrivalDate": false,
+    "allowResidenceStatus": false,
+    "allowRoomNumber": false,
+    "allowAddress": true,
+    "allowPassportInfo": false,
+    "allowIqamahInfo": false,
+    "allowDocumentsUpload": true
+  },
+  "programs": [
+    {
+      "id": "prog-cs",
+      "name_ar": "علوم الحاسب والمعلومات",
+      "name_en": "Computer Science & Information",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-se",
+      "name_ar": "هندسة البرمجيات",
+      "name_en": "Software Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-is",
+      "name_ar": "نظم المعلومات الإدارية",
+      "name_en": "Management Information Systems",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-me",
+      "name_ar": "الهندسة الميكانيكية",
+      "name_en": "Mechanical Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ee",
+      "name_ar": "الهندسة الكهربائية",
+      "name_en": "Electrical Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ce",
+      "name_ar": "الهندسة المدنية",
+      "name_en": "Civil Engineering",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ba",
+      "name_ar": "إدارة الأعمال",
+      "name_en": "Business Administration",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-acc",
+      "name_ar": "المحاسبة",
+      "name_en": "Accounting",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-is-sharia",
+      "name_ar": "الشريعة والدراسات الإسلامية",
+      "name_en": "Sharia & Islamic Studies",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-ar",
+      "name_ar": "اللغة العربية وآدابها",
+      "name_en": "Arabic Language & Literature",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-eng",
+      "name_ar": "اللغة الإنجليزية والترجمة",
+      "name_en": "English Language & Translation",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-med",
+      "name_ar": "الطب البشري والجراحة",
+      "name_en": "Medicine & Surgery",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    },
+    {
+      "id": "prog-pharm",
+      "name_ar": "دكتور صيدلة",
+      "name_en": "Doctor of Pharmacy",
+      "created_at": "2026-11-10T11:47:29.259Z"
+    }
+  ],
+  "complaint_categories": [
+    {
+      "id": "cat-elec",
+      "name": "الكهرباء والإنارة (Electrical)",
+      "description": "Lighting, power outlets, switches, fuses",
+      "is_active": true
+    },
+    {
+      "id": "cat-plumb",
+      "name": "السباكة والمياه (Plumbing)",
+      "description": "Faucets, pipes, drainage, water supply, leaks",
+      "is_active": true
+    },
+    {
+      "id": "cat-ac",
+      "name": "التكييف والتهوية (HVAC & AC)",
+      "description": "AC units, heating, ventilation filters",
+      "is_active": true
+    },
+    {
+      "id": "cat-net",
+      "name": "الإنترنت والشبكات (Internet & Wi-Fi)",
+      "description": "Wi-Fi connectivity, Ethernet ports, router",
+      "is_active": true
+    },
+    {
+      "id": "cat-furn",
+      "name": "الأثاث والنجارة (Furniture & Doors)",
+      "description": "Beds, desks, wardrobes, window blinds, door locks",
+      "is_active": true
+    },
+    {
+      "id": "cat-clean",
+      "name": "النظافة ومكافحة الآفات (Cleanliness & Pest Control)",
+      "description": "Room cleaning, hallways, pest issues",
+      "is_active": true
+    },
+    {
+      "id": "cat-other",
+      "name": "مرافق عامة أخرى (General Facilities)",
+      "description": "Elevators, laundry rooms, study rooms, general maintenance",
+      "is_active": true
+    },
+    {
+      "id": "cat-1794419430855",
+      "name": "التكييف والتهوية (HVAC Special)",
+      "description": "Special AC test category",
+      "is_active": true,
+      "created_at": "2026-11-11T17:50:30.855Z",
+      "updated_at": null
+    }
+  ],
+  "complaint_messages": [
+    {
+      "id": "msg-1794419430860-t43bl",
+      "complaint_id": "cmp-1794419430859",
+      "sender_id": "staff",
+      "sender_name": "Demo Staff",
+      "sender_role": "staff",
+      "message": "Hello, our maintenance technician will inspect the sink in 30 minutes.",
+      "attachments": [],
+      "is_internal_note": false,
+      "created_at": "2026-11-11T17:50:30.860Z"
+    },
+    {
+      "id": "msg-1794419430861-t8rcb",
+      "complaint_id": "cmp-1794419430859",
+      "sender_id": "staff",
+      "sender_name": "Demo Staff",
+      "sender_role": "staff",
+      "message": "Internal Note: Replacement washer is in storage cabinet B-2.",
+      "attachments": [],
+      "is_internal_note": true,
+      "created_at": "2026-11-11T17:50:30.861Z"
+    }
+  ],
+  "system_settings": {
+    "id": "global",
+    "is_ticket_window_open": true,
+    "print_letterhead_url": "letterhead-test-456",
+    "print_logo_url": "logo-test-id-123",
+    "print_header_title_ar": "المملكة العربية السعودية - تجربة",
+    "print_header_subtitle_ar": "وزارة التعليم\nجامعة حائل\nعمادة شؤون الطلاب",
+    "print_header_title_en": "Kingdom of Saudi Arabia - Test",
+    "print_header_subtitle_en": "Ministry of Education\nUniversity of Hail\nDeanship of Student Affairs",
+    "print_layout_style": "standard",
+    "print_signature_name": "د. عبدالله الشمري (رئيس وحدة الإسكان)",
+    "print_footer_text": "ملاحظة تجريبية لنص التذييل",
+    "updated_at": "2026-11-15T05:22:01.635Z"
+  }
+}

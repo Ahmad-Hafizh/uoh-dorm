@@ -9,8 +9,6 @@ __pycache__/
 
 .next-demo/
 .next-production/
-demo/data.json
-demo/uploads/
 *.tsbuildinfo
 
 .next-verified/
